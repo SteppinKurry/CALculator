@@ -26,4 +26,6 @@ u64 lcm(u64 a, u64 b);
 u64 bit_set_to(u64 number, u64 n, bool x);
 bool bit_check(u64 number, u64 n);
 
+long power_long(long base, long exponent);
+
 #endif

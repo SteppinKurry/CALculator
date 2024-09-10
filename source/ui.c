@@ -4,10 +4,12 @@
 
 // the x and y coordinates of the top left corner of each button on the bottom screen
 u8 button_positions[][2] = {{5, 149}, {5, 102}, {53, 102}, {100, 102}, {5, 53}, {53, 53}, {102, 53},
-							{5, 5}, {53, 5}, {102, 5}, {171, 5}, {171, 53}, {171, 102}, {171, 149}, {102, 149}};
+							{5, 5}, {53, 5}, {102, 5}, {211, 3}, {211, 51}, {211, 99}, {211, 147}, {102, 149}, 
+							{147, 3}, {147, 51}, {147, 99}, {147, 147}};
 
 // indices 0-9 are buttons 0-9, followed by plus, minus, multiply, divide, and equal
-u8 total_nums = 15;
+// now followed up by left and right parentheses, clear, and exponent 
+u8 total_nums = 19;
 
 void ui_init()
 {
@@ -46,10 +48,16 @@ void ui_init()
 
 }
 
-void calc_main_print(char* print_this)
+void calc_main_print(char* print_this, u8* line, char newline)
 {
-    NF_ClearTextLayer(0, 0);
-    NF_WriteText(0, 0, 2, 20, print_this);
+    //NF_ClearTextLayer(0, 0);
+    NF_WriteText(0, 0, 2, *line, print_this);
+
+	if (newline == 1) 
+	{ 	
+		if (*line >= 255) { line = 0; }
+		else { *line += 1; }
+	}
 }
 
 u8 check_touch(touchPosition* tp)

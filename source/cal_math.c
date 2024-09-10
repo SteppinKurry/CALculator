@@ -129,6 +129,21 @@ u64 power(u64 base, u64 exponent)
     return result;
 }
 
+long power_long(long base, long exponent)
+{
+    // 3-25-24
+    // very smooth-brain implementation of exponents
+
+    long result = 1;
+    for (int x = 0; x < exponent; x++)
+    {
+        result *= base;
+    }
+
+    return result;
+}
+
+
 u64 gcd(u64 a, u64 b)
 {
     // 2-12-24
