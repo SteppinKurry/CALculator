@@ -7,7 +7,7 @@
 
 #include <nds.h>
 
-struct bigreal
+struct bigreal // tehcnically just a bigrational rn
 {
     u64 numerator;
     u64 denominator;

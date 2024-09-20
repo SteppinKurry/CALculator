@@ -5,33 +5,6 @@
 char operators[] = { '+', '1', '-', '1', '*', '2', '/', '2', '^', '3', '(', '4', ')', '4' };
 int num_ops = 7;
 
-struct bigreal basic_do_math(struct tokenized wang)
-{
-    // 3-18-24
-
-    if (wang.operation == '+') { return  bigreal_add(wang.first, wang.second); }
-    else if (wang.operation == '-')
-    {
-        wang.second.sign = -1;
-        return bigreal_add(wang.first, wang.second);
-    }
-    else if (wang.operation == '*') { return bigreal_multiply(wang.first, wang.second); }
-    else if (wang.operation == '/') 
-    { 
-        struct bigreal a;
-        a.numerator = shit_div64(wang.first.numerator, wang.second.numerator);
-        a.denominator = 1;
-        return a;
-    }
-
-    // Because of the nature of the parse function, the only 
-    // bigreal that's filled when there is no operator is the 
-    // second one. The other one defaults to 0
-    return wang.second;
-
-
-}
-
 char is_operator(char e)
 {
     // 9-7-24
@@ -158,8 +131,13 @@ char is_valid_number(char* number)
 
 }
 
-char parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX_NUM_LEN])
+u8 parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX_NUM_LEN])
 {
+
+    // 9-9-24
+    // Uses the shunting yard algorithm to turn an infix math 
+    // expression (mathstring) into the same expression represented 
+    // in postfix notation. Get a mathstring from the tokenize function.
 
     char op_stack[MATHSTR_LEN];
     u8 parsed_ind = 1;
@@ -167,8 +145,11 @@ char parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][M
     
     int flag = 0;
 
+    // loops through each thing in the expression
     for (int x = 1; x < atoi(mathstring[0]) + 1; x++)
     {
+
+        // if it's a number, add it to the output
         if (is_valid_number(mathstring[x])) 
         { 
             strcpy(parsed[parsed_ind], mathstring[x]); 
@@ -176,10 +157,18 @@ char parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][M
 
         }
 
+        // if it's an operator
         else if ( (is_operator(mathstring[x][0])) && (mathstring[x][0] != '(') && (mathstring[x][0] != ')') )
         {
-            while ( (op_stack_top != 0) && (has_precedence(op_stack[op_stack_top], mathstring[x][0])) && (op_stack[op_stack_top] != '(') )
+
+            // while the thing at the top of the op stack has greater 
+            // precedence than the current op
+            while ( (op_stack_top != 0) && (has_precedence(op_stack[op_stack_top], mathstring[x][0])) 
+                     && (op_stack[op_stack_top] != '(') )
             {
+
+                // remove things from the operator stack and put 
+                // them in the output
                 parsed[parsed_ind][0] = op_stack[op_stack_top];
                 parsed[parsed_ind][1] = '\0';
                 op_stack_top -= 1;
@@ -188,19 +177,26 @@ char parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][M
                 flag += 1;
             }
 
+            // add the current operator to the stack
             op_stack_top += 1;
             op_stack[op_stack_top] = mathstring[x][0];
                             
         }
 
+        // if open parenthesis
         else if (mathstring[x][0] == '(')
         {
+            // add it to the stack like usual
             op_stack_top += 1;
             op_stack[op_stack_top] = mathstring[x][0];
         }
 
+        // if close parenthesis
         else if (mathstring[x][0] == ')')
         {
+
+            // remove everything from the op stack until you 
+            // reach an open parenthesis    
             while (op_stack[op_stack_top] != '(')
             {
                 parsed[parsed_ind][0] = op_stack[op_stack_top];
@@ -210,12 +206,16 @@ char parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][M
                 parsed_ind += 1;
             }
 
+            // if the current thing at the top of the stack isn't an 
+            // open parenthesis, complain
             if (op_stack[op_stack_top] != '(')
             {
                 char weenres[80];
                 u8 peen = 15;
                 sprintf(weenres, "s000000000000 angry: %c", op_stack[op_stack_top]);
                 calc_main_print(weenres, &peen, 0);
+
+                // return with error 1
                 return 1;
             }
             op_stack_top -= 1;
@@ -223,6 +223,8 @@ char parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][M
 
     }
 
+    // move all of the remaining operators off the stack and 
+    // into the output
     while (op_stack_top > 0)
     {
         parsed[parsed_ind][0] = op_stack[op_stack_top];
@@ -230,112 +232,110 @@ char parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][M
 
         parsed_ind += 1;
         op_stack_top -= 1;
-
     }
 
-    sprintf(parsed[0], "%d | %d", parsed_ind, atoi(mathstring[0]));
+    // put the final number of elements in the expression 
+    // into the beginning of it
+    sprintf(parsed[0], "%d", parsed_ind);
 
+    // worked without error
     return 0;
 }
 
-long evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
+struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
 {
+    // 9-9-24
+    // evaluates a postfix expression and returns an actual result 
+    // in the form of a bigreal *sunglasses emoji*
 
-    long stack[MATHSTR_LEN];
+    struct bigreal stack[MATHSTR_LEN];
     u8 top_stack = 0;
 
+    // loops through each element of the expression
     for (int x = 1; x < atoi(parsed[0]); x++)
     {
 
+        // if the current element is an operator, evaluate it using the 
+        // last two numbers in the stack
         if (is_operator(parsed[x][0]))
         {
-            long b = stack[top_stack-1];
-            long a = stack[top_stack-2];
-            
+            // pop last two things off stack
+            struct bigreal b = stack[top_stack-1];
+            struct bigreal a = stack[top_stack-2];
+
             top_stack -= 2;
 
-            if (!strcmp(parsed[x], "+")) { a += b; }
-            else if (!strcmp(parsed[x], "-")) { a-= b; }
-            else if (!strcmp(parsed[x], "*")) { a *= b; }
-            else if (!strcmp(parsed[x], "/")) { a /= b; }
-            else if (!strcmp(parsed[x], "^")) { a = power_long(a, b); }
-            else { return -6969; }
-            
+            // do the calculation
+            if (!strcmp(parsed[x], "+")) { a = bigreal_add(a, b); }
+            else if (!strcmp(parsed[x], "-")) { b.sign *= -1; a = bigreal_add(a, b); }
+            else if (!strcmp(parsed[x], "*")) { a = bigreal_multiply(a, b); }
+            else if (!strcmp(parsed[x], "^")) { a.numerator = power(a.numerator, b.numerator); }
+            else if (!strcmp(parsed[x], "/")) 
+            { 
+                // set b as the denominator
+                a.denominator = b.numerator;
+
+                // make sure the signs work out
+                a.sign *= b.sign;
+
+                // simplify
+                a = bigreal_simplify(a);     
+            }
+
+            else 
+            { 
+                struct bigreal a;
+                a.sign = 0;  // this should never happen, so if it does, there's an error
+                return  a;
+            }
+
+            // put the result at the top of the stack
             stack[top_stack] = a;
             top_stack += 1;
 
         }
         else
         {
-            stack[top_stack] = atoi(parsed[x]);
+
+            // if not an operator, just add to the stack
+            stack[top_stack].numerator = atoi(parsed[x]);
+            stack[top_stack].denominator = 1;
+            stack[top_stack].sign = 1;
+            
             top_stack += 1;
 
         }
 
     }
     
-    // char weenres[80];
-    // u8 peen = 7;
-    // sprintf(weenres, "what angry: %ld", stack[0]);
-    // calc_main_print(weenres, &peen, 0);
-
+    // return the result
     return stack[top_stack-1];
 
 }
 
-// int parse(char* expression, struct tokenized* output)
+// struct bigreal basic_do_math(struct tokenized wang)
 // {
+//     // 3-18-24
 
-//     struct bigreal first;
-//     struct bigreal second;
-
-//     first.denominator = 1;
-//     first.sign = 1;
-
-//     second.denominator = 1;
-//     second.sign = 1;
-
-//     u64 first_numer = 0;
-//     u64 second_numer = 0;
-
-//     char idx = 0;
-//     char state = 0;
-
-//     for (int x = (strlen(expression) - 1); x >= 0; x--)
+//     if (wang.operation == '+') { return  bigreal_add(wang.first, wang.second); }
+//     else if (wang.operation == '-')
 //     {
-//         if (state == 0)
-//         {
-//             if (expression[x] >= '0' && expression[x] <= '9')
-//             {
-//                 second_numer += (expression[x] - '0') * power(10, idx);
-//                 idx += 1;
-//             }
-//             else
-//             {
-//                 output->operation = expression[x];
-//                 state = 1;
-//                 idx = 0;
-//             }
-
-//         }
-
-//         if (state == 1)
-//         {
-//             if (expression[x] >= '0' && expression[x] <= '9')
-//             {
-//                 first_numer += (expression[x] - '0') * power(10, idx);
-//                 idx += 1;
-//             }
-
-//         }
+//         wang.second.sign = -1;
+//         return bigreal_add(wang.first, wang.second);
+//     }
+//     else if (wang.operation == '*') { return bigreal_multiply(wang.first, wang.second); }
+//     else if (wang.operation == '/') 
+//     { 
+//         struct bigreal a;
+//         a.numerator = shit_div64(wang.first.numerator, wang.second.numerator);
+//         a.denominator = 1;
+//         return a;
 //     }
 
-//     first.numerator = first_numer;
-//     second.numerator = second_numer;
+//     // Because of the nature of the parse function, the only 
+//     // bigreal that's filled when there is no operator is the 
+//     // second one. The other one defaults to 0
+//     return wang.second;
 
-//     output->first = first;
-//     output->second = second;
 
-//     return 1;
 // }
-

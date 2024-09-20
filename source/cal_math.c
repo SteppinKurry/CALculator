@@ -52,11 +52,13 @@ struct bigreal bigreal_add(struct bigreal a, struct bigreal b)
         if (new_a <= new_b) { a.sign = -1; }
         else { a.sign = 1; }
 
+        if (a.numerator == 0) { a.sign = 1; }
     }
 
     // denominator is the same regardless
     a.denominator = new_denom;
 
+    a = bigreal_simplify(a);
     return a;
 }
 
@@ -65,8 +67,7 @@ struct bigreal bigreal_multiply(struct bigreal a, struct bigreal b)
     a.numerator *= b.numerator;
     a.denominator *= b.denominator;
 
-    if (b.sign == -1) { a.sign = -1; }
-    else if (a.sign == -1 || b.sign == -1) { a.sign = 1; }
+    a.sign *= b.sign;
 
     a = bigreal_simplify(a);
 
@@ -96,7 +97,6 @@ u64 shit_div64(u64 a, u64 b)
     // to be fast enough for right now
 
     // currently only supports integer division
-
     u64 quotient = 0;
     u64 remainder = 0;
 
@@ -129,21 +129,6 @@ u64 power(u64 base, u64 exponent)
     return result;
 }
 
-long power_long(long base, long exponent)
-{
-    // 3-25-24
-    // very smooth-brain implementation of exponents
-
-    long result = 1;
-    for (int x = 0; x < exponent; x++)
-    {
-        result *= base;
-    }
-
-    return result;
-}
-
-
 u64 gcd(u64 a, u64 b)
 {
     // 2-12-24
@@ -170,7 +155,7 @@ u64 lcm(u64 a, u64 b)
     // really basic implementation of a least common multiple 
     // "algorithm"
 
-    return shit_div64(a, b * gcd(a, b));
+    return (a * b) / gcd(a, b);
 }
 
 u64 bit_set_to(u64 number, u64 n, bool x) 

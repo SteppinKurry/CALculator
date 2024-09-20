@@ -29,8 +29,15 @@ void ui_init()
 	// set the root folder for the filesystem
 	nitroFSInit(NULL);
 	NF_SetRootFolder("NITROFS");
+	
+	calc_console_init();
+	//debug_console_init();
 
-    // initialize text for the top screen
+}
+
+void calc_console_init()
+{
+	// initialize text for the top screen
 	NF_InitTextSys(0);
 	NF_LoadTextFont("fnt/default", "wang", 256, 256, 0);
 	NF_CreateTextLayer(0, 0, 0, "wang");
@@ -46,6 +53,11 @@ void ui_init()
 
     NF_CreateTextLayer(0, 0, 0, "wang");
 
+}
+
+void debug_console_init()
+{
+	consoleDemoInit();
 }
 
 void calc_main_print(char* print_this, u8* line, char newline)

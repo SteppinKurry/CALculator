@@ -17,6 +17,7 @@ struct calc_console
 void ui_init();
 u8 check_touch(touchPosition* tp);
 void calc_main_print(char* print_this, u8* line, char newline);
-
+void calc_console_init();
+void debug_console_init();
 
 #endif
