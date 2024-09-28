@@ -90,6 +90,40 @@ struct bigreal bigreal_simplify(struct bigreal a)
     return a;
 }
 
+struct bigreal bigreal_init(u64 numerator, u64 denominator, int8 sign)
+{
+    // 9-28-24
+    // A function to make a bigreal. I wanted this in case I need to 
+    // change the implementation of a bigreal and didn't want to change 
+    // it everywhere else
+    
+    struct bigreal return_this;
+    return_this.numerator = numerator;
+    return_this.denominator = denominator;
+    return_this.sign = sign;
+    return_this.function = 0;
+
+    return return_this;
+}
+
+u64 str_to_u64(char* str)
+{
+    // 9-26-24
+    // converts a number stored as a string to an actual number
+    // I needed this because atoi casts to an int and not a u64
+    u64 return_this = 0;
+    u8 len_str = strlen(str);
+    u8 digits = len_str-1;
+
+    for (int x = 0; x < len_str; x++)
+    {
+        return_this += (str[x] - '0') * power(10, digits);
+        digits -= 1;
+    }
+
+    return return_this;
+}
+
 u64 shit_div64(u64 a, u64 b)
 {
     // 3-25-24

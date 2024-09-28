@@ -37,6 +37,13 @@ int main(int argc, char **argv)
 	// parsed string is the for the parsed (postifx) expression
 	char parsedstring[MATHSTR_LEN][MAX_NUM_LEN];
 
+	// initialize result variable
+	struct bigreal result;
+	result.numerator = 0;
+	result.denominator = 1;
+	result.sign = 1;
+
+	
 	u8 whereprint = 15;
 
 	// main loop
@@ -49,8 +56,6 @@ int main(int argc, char **argv)
 		int held = keysHeld();
 
 		if (!held) tap_toggle = 1; 
-
-		// calc_main_print("penis", &whereprint, 0);
 
 		// if there was a touch input
 		if ((held & KEY_TOUCH) && tap_toggle == 1)
@@ -65,8 +70,58 @@ int main(int argc, char **argv)
 			// do the thing with the button
 			if (button == 14) // equal sign
 			{ 
-				//char expression[] = "(2/15)-(2/45)";
-				struct bigreal result;
+
+				if (result.denominator > 1)
+				{
+					// if the last answer was a fraction, pressing equal again 
+					// will output the decimal approximation of the fraction
+
+					u32 float_precision = 1000;
+
+					u64 a = div64(result.numerator, result.denominator);
+					u32 remainder = mod64(result.numerator, result.denominator);
+
+					int32 decimal = divf32(inttof32(remainder), inttof32(result.denominator)) & 0x00000FFF;
+					int32 divided = f32toint(decimal * float_precision);
+					
+
+					char weenres[200];
+					whereprint = 20;
+
+					if (result.sign == 1)
+						sprintf(weenres, "%lld/%lld = %lld.%ld", result.numerator, result.denominator, a, 
+																					mod32(divided, float_precision));
+
+					else
+						sprintf(weenres, "%lld/%lld = -%lld.%ld", result.numerator, result.denominator, a, 
+																					mod32(divided, float_precision));
+
+
+					calc_main_print("                                                                ", &whereprint, 0);
+					calc_main_print(weenres, &whereprint, 0);
+
+					whereprint = 15;
+
+					expression[0] = '\0';
+					expression_len = 0;
+
+					whereprint = 15;
+					calc_main_print("                                                ", &whereprint, 0);
+					
+					// reset the result variable
+					result.numerator = 0;
+					result.denominator = 1;
+					result.sign = 1;
+
+					continue;
+				}
+
+				// char expression[] = "(2/15)-(2/45)";
+				
+				// reset the result variable
+				result.numerator = 0;
+				result.denominator = 1;
+				result.sign = 1;
 
 				memset(mathstring, '\0', sizeof(mathstring));
 				memset(parsedstring, '\0', sizeof(parsedstring));
@@ -77,34 +132,19 @@ int main(int argc, char **argv)
 
 				char weenres[200];
 				whereprint = 16;
-				//NF_ClearTextLayer(0, 0);
-				//calc_main_print("behold", &whereprint, 1);
-				
+
 				sprintf(weenres, "parsed size: %s", mathstring[0]);
-
-				//calc_main_print(weenres, &whereprint, 1);
-
-				// for (int x = 1; x <= atoi(mathstring[0]); x++)
-				// {
-				// 	sprintf(weenres, ": %s", mathstring[x]);
-				// 	calc_main_print(weenres, &whereprint, 1);
-				// }
-
-				// for (int x = 1; x < atoi(parsedstring[0]); x++)
-				// {
-				// 	sprintf(weenres, ": %s", parsedstring[x]);
-				// 	calc_main_print(weenres, &whereprint, 1);
-				// }
-
 				whereprint = 20;
 
-				calc_main_print("                                                ", &whereprint, 0);
+				calc_main_print("                                                                ", &whereprint, 0);
 				calc_main_print("BEHOLD: ", &whereprint, 1);
 
+
+				// makes the result look nicer when it's printed
 				if (result.denominator == 1) 
 				{ 
 					if (result.sign == -1) { sprintf(weenres, "%s = -%lld", expression, result.numerator); }
-					else { sprintf(weenres, "%s = %lld", expression, result.numerator );}
+					else { sprintf(weenres, "%s = %lld", expression, result.numerator); }
 					
 				}
 				else
@@ -115,7 +155,7 @@ int main(int argc, char **argv)
 					}
 					else
 					{
-						sprintf(weenres, "%s = %lld\\%lld", expression, result.numerator, result.denominator);
+						sprintf(weenres, "%s = %llu\\%llu", expression, result.numerator, result.denominator);
 					}
 
 				}
@@ -125,8 +165,7 @@ int main(int argc, char **argv)
 				expression_len = 0;
 
 				whereprint = 15;
-
-				calc_main_print("                     ", &whereprint, 0);
+				calc_main_print("                                                ", &whereprint, 0);
 			}
 
 			else if (button >= 0 && button <= 9)
@@ -221,12 +260,10 @@ int main(int argc, char **argv)
 
 			}
 
-
 		}
 
 
 		if (keys & KEY_START) break;
-		// else if (keys & KEY_A) math_routine();
 
 		NF_UpdateTextLayers();
 

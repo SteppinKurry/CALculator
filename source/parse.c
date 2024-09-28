@@ -43,6 +43,8 @@ char has_precedence(char a, char b)
     return a_prec >= b_prec;
 }
 
+
+// THIS STILL DOESN"T MAJE SURE NUMBERS ARE THE LESS THAN OR EQUAL TO THE MAX LENGTH >:(((((((
 u8 tokenize(char* expression, char mathstring[50][MAX_NUM_LEN])
 {
     // 9-9-24
@@ -52,7 +54,7 @@ u8 tokenize(char* expression, char mathstring[50][MAX_NUM_LEN])
     // is split up based upon operators
 
     // setup a few things
-    char current[20];
+    char current[MAX_NUM_LEN];
     u8 output_index = 1;
     u8 current_index = 0;
     u8 current_len = 0;
@@ -74,9 +76,12 @@ u8 tokenize(char* expression, char mathstring[50][MAX_NUM_LEN])
             }
             else
             {
+                // make sure the number isn't too big
+                if (current_len > MAX_NUM_LEN) { current_len = MAX_NUM_LEN; }
+
+                // copy everything over
                 strncpy(mathstring[output_index], current, current_len);
                 strncpy(mathstring[output_index+1], &expression[x], 1);
-
             }
 
             // reset some things
@@ -271,12 +276,15 @@ struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
             else if (!strcmp(parsed[x], "*")) { a = bigreal_multiply(a, b); }
             else if (!strcmp(parsed[x], "^")) { a.numerator = power(a.numerator, b.numerator); }
             else if (!strcmp(parsed[x], "/")) 
-            { 
-                // set b as the denominator
-                a.denominator = b.numerator;
+            {
 
-                // make sure the signs work out
-                a.sign *= b.sign;
+                // flip b (whatever it may be)
+                u64 b_temp = b.numerator;
+                b.numerator = b.denominator;
+                b.denominator = b_temp;
+                
+                // b is now the reciprocal of b, multiply by a
+                a = bigreal_multiply(a, b);
 
                 // simplify
                 a = bigreal_simplify(a);     
@@ -286,7 +294,7 @@ struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
             { 
                 struct bigreal a;
                 a.sign = 0;  // this should never happen, so if it does, there's an error
-                return  a;
+                return a;
             }
 
             // put the result at the top of the stack
@@ -298,9 +306,11 @@ struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
         {
 
             // if not an operator, just add to the stack
-            stack[top_stack].numerator = atoi(parsed[x]);
-            stack[top_stack].denominator = 1;
-            stack[top_stack].sign = 1;
+            // stack[top_stack].numerator = str_to_u64(parsed[x]);
+            // stack[top_stack].denominator = 1;
+            // stack[top_stack].sign = 1;
+
+            stack[top_stack] = bigreal_init(str_to_u64(parsed[x]), 1, 1);
             
             top_stack += 1;
 
@@ -312,30 +322,3 @@ struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
     return stack[top_stack-1];
 
 }
-
-// struct bigreal basic_do_math(struct tokenized wang)
-// {
-//     // 3-18-24
-
-//     if (wang.operation == '+') { return  bigreal_add(wang.first, wang.second); }
-//     else if (wang.operation == '-')
-//     {
-//         wang.second.sign = -1;
-//         return bigreal_add(wang.first, wang.second);
-//     }
-//     else if (wang.operation == '*') { return bigreal_multiply(wang.first, wang.second); }
-//     else if (wang.operation == '/') 
-//     { 
-//         struct bigreal a;
-//         a.numerator = shit_div64(wang.first.numerator, wang.second.numerator);
-//         a.denominator = 1;
-//         return a;
-//     }
-
-//     // Because of the nature of the parse function, the only 
-//     // bigreal that's filled when there is no operator is the 
-//     // second one. The other one defaults to 0
-//     return wang.second;
-
-
-// }
