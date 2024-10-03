@@ -142,7 +142,8 @@ u8 parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX
     // 9-9-24
     // Uses the shunting yard algorithm to turn an infix math 
     // expression (mathstring) into the same expression represented 
-    // in postfix notation. Get a mathstring from the tokenize function.
+    // in postfix notation. You can get a mathstring from the tokenize 
+    // function.
 
     char op_stack[MATHSTR_LEN];
     u8 parsed_ind = 1;
@@ -272,22 +273,20 @@ struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
 
             // do the calculation
             if (!strcmp(parsed[x], "+")) { a = bigreal_add(a, b); }
-            else if (!strcmp(parsed[x], "-")) { b.sign *= -1; a = bigreal_add(a, b); }
+            else if (!strcmp(parsed[x], "-")) { a = bigreal_sub(a, b); }
             else if (!strcmp(parsed[x], "*")) { a = bigreal_multiply(a, b); }
             else if (!strcmp(parsed[x], "^")) { a.numerator = power(a.numerator, b.numerator); }
             else if (!strcmp(parsed[x], "/")) 
             {
 
                 // flip b (whatever it may be)
-                u64 b_temp = b.numerator;
-                b.numerator = b.denominator;
-                b.denominator = b_temp;
+                b = bigreal_reciprocal(b);
                 
                 // b is now the reciprocal of b, multiply by a
                 a = bigreal_multiply(a, b);
 
                 // simplify
-                a = bigreal_simplify(a);     
+                a = bigreal_simplify(a); 
             }
 
             else 
@@ -306,12 +305,8 @@ struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
         {
 
             // if not an operator, just add to the stack
-            // stack[top_stack].numerator = str_to_u64(parsed[x]);
-            // stack[top_stack].denominator = 1;
-            // stack[top_stack].sign = 1;
-
+            // makes a bigreal from the numbers in the stack
             stack[top_stack] = bigreal_init(str_to_u64(parsed[x]), 1, 1);
-            
             top_stack += 1;
 
         }

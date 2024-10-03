@@ -11,6 +11,7 @@
 #include "ui.h"
 #include "parse.h"
 #include "calmath.h"
+#include "irrational_math.h"
 #include "sizes.h"
 
 int main(int argc, char **argv) 
@@ -76,26 +77,16 @@ int main(int argc, char **argv)
 					// if the last answer was a fraction, pressing equal again 
 					// will output the decimal approximation of the fraction
 
-					u32 float_precision = 1000;
-
-					u64 a = div64(result.numerator, result.denominator);
-					u32 remainder = mod64(result.numerator, result.denominator);
-
-					int32 decimal = divf32(inttof32(remainder), inttof32(result.denominator)) & 0x00000FFF;
-					int32 divided = f32toint(decimal * float_precision);
-					
-
 					char weenres[200];
 					whereprint = 20;
 
+					double ans = (double) result.numerator / result.denominator;
+
 					if (result.sign == 1)
-						sprintf(weenres, "%lld/%lld = %lld.%ld", result.numerator, result.denominator, a, 
-																					mod32(divided, float_precision));
+						sprintf(weenres, "%lld/%lld = %lf", result.numerator, result.denominator, ans);
 
 					else
-						sprintf(weenres, "%lld/%lld = -%lld.%ld", result.numerator, result.denominator, a, 
-																					mod32(divided, float_precision));
-
+						sprintf(weenres, "%lld/%lld = -%lf", result.numerator, result.denominator, ans);
 
 					calc_main_print("                                                                ", &whereprint, 0);
 					calc_main_print(weenres, &whereprint, 0);
@@ -159,6 +150,10 @@ int main(int argc, char **argv)
 					}
 
 				}
+
+				result = root(bigreal_init(16, 1, 1), 2);
+				sprintf(weenres, "root = %lld/%lld", result.numerator, result.denominator);
+
 				calc_main_print(weenres, &whereprint, 0);
 
 				expression[0] = '\0';
