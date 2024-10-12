@@ -2,8 +2,21 @@
 
 #include "parse.h"
 
-char operators[] = { '+', '1', '-', '1', '*', '2', '/', '2', '^', '3', '(', '4', ')', '4' };
+char operatorsOld[] = { '+', '1', '-', '1', '*', '2', '/', '2', '^', '3', '(', '4', ')', '4' };
 int num_ops = 7;
+
+enum operators char_to_op(char c)
+{
+    if (c == '+') return ADD;
+    if (c == '-') return SUB;
+    if (c == '*') return MUL;
+    if (c == '/') return DIV;
+    if (c == '^') return POW;
+    if (c == '(') return LPAREN;
+    if (c == ')') return RPAREN;
+
+    return NOOP;
+}
 
 char is_operator(char e)
 {
@@ -13,7 +26,7 @@ char is_operator(char e)
 
     for (int x = 0; x < num_ops * 2; x += 2)
     {
-        if (e == operators[x]) { return 1; }
+        if (e == operatorsOld[x]) { return 1; }
     }  
 
     return 0;
@@ -28,7 +41,7 @@ u8 get_op_precedence(char a)
 
         // when a match is found, return the precedence level 
         // of the operator
-        if (a == operators[x]) { return atoi(&operators[x+1]); }
+        if (a == operatorsOld[x]) { return atoi(&operatorsOld[x+1]); }
     }
 
     // no operator was found, return 0
@@ -44,8 +57,7 @@ char has_precedence(char a, char b)
 }
 
 
-// THIS STILL DOESN"T MAJE SURE NUMBERS ARE THE LESS THAN OR EQUAL TO THE MAX LENGTH >:(((((((
-u8 tokenize(char* expression, char mathstring[50][MAX_NUM_LEN])
+u8 tokenize(char* expression, char mathstring[MATHSTR_LEN][MAX_NUM_LEN])
 {
     // 9-9-24
     // Accepts a string with a mathematical expression and breaks 
@@ -54,9 +66,8 @@ u8 tokenize(char* expression, char mathstring[50][MAX_NUM_LEN])
     // is split up based upon operators
 
     // setup a few things
-    char current[MAX_NUM_LEN];
+    char current[MAX_NUM_LEN+3];
     u8 output_index = 1;
-    u8 current_index = 0;
     u8 current_len = 0;
     u8 expression_len = strlen(expression);
 
@@ -80,12 +91,11 @@ u8 tokenize(char* expression, char mathstring[50][MAX_NUM_LEN])
                 if (current_len > MAX_NUM_LEN) { current_len = MAX_NUM_LEN; }
 
                 // copy everything over
-                strncpy(mathstring[output_index], current, current_len);
+                snprintf(mathstring[output_index], MAX_NUM_LEN, "%.*s", current_len, current);
                 strncpy(mathstring[output_index+1], &expression[x], 1);
             }
 
             // reset some things
-            current_index = 0;
             output_index += 2;
             current_len = 0;
         }
@@ -93,15 +103,24 @@ u8 tokenize(char* expression, char mathstring[50][MAX_NUM_LEN])
         // otherwise, add the current character to current
         else
         {
-            current[current_index] = expression[x];
-            current_index += 1;
-            current_len += 1;
+            // only add the character if current has room left
+            if (current_len < MAX_NUM_LEN)
+            {
+                current[current_len] = expression[x];
+                current_len += 1;
+            }
+            
+            if (current_len >= MAX_NUM_LEN)
+            {
+                current[MAX_NUM_LEN-1] = '\0';
+            }
         }
 
     }
 
     // append the final current to the output
-    strncpy(mathstring[output_index], current, current_len);
+    if (current_len >= MAX_NUM_LEN) { current_len = MAX_NUM_LEN; }
+    snprintf(mathstring[output_index], MAX_NUM_LEN, "%.*s", current_len, current);
 
     // store the number of elements in the output in the output
     sprintf(mathstring[0], "%d", output_index);
@@ -248,13 +267,13 @@ u8 parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX
     return 0;
 }
 
-struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
+struct fraction evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
 {
     // 9-9-24
     // evaluates a postfix expression and returns an actual result 
-    // in the form of a bigreal *sunglasses emoji*
+    // in the form of a fraction *sunglasses emoji*
 
-    struct bigreal stack[MATHSTR_LEN];
+    struct fraction stack[MATHSTR_LEN];
     u8 top_stack = 0;
 
     // loops through each element of the expression
@@ -266,32 +285,32 @@ struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
         if (is_operator(parsed[x][0]))
         {
             // pop last two things off stack
-            struct bigreal b = stack[top_stack-1];
-            struct bigreal a = stack[top_stack-2];
+            struct fraction b = stack[top_stack-1];
+            struct fraction a = stack[top_stack-2];
 
             top_stack -= 2;
 
             // do the calculation
-            if (!strcmp(parsed[x], "+")) { a = bigreal_add(a, b); }
-            else if (!strcmp(parsed[x], "-")) { a = bigreal_sub(a, b); }
-            else if (!strcmp(parsed[x], "*")) { a = bigreal_multiply(a, b); }
-            else if (!strcmp(parsed[x], "^")) { a.numerator = power(a.numerator, b.numerator); }
+            if (!strcmp(parsed[x], "+")) { a = fraction_add(a, b); }
+            else if (!strcmp(parsed[x], "-")) { a = fraction_sub(a, b); }
+            else if (!strcmp(parsed[x], "*")) { a = fraction_mul(a, b); }
+            else if (!strcmp(parsed[x], "^")) { a = fraction_basic_power(a, b); }
             else if (!strcmp(parsed[x], "/")) 
             {
 
                 // flip b (whatever it may be)
-                b = bigreal_reciprocal(b);
+                b = fraction_reciprocal(b);
                 
                 // b is now the reciprocal of b, multiply by a
-                a = bigreal_multiply(a, b);
+                a = fraction_mul(a, b);
 
                 // simplify
-                a = bigreal_simplify(a); 
+                a = fraction_simplify(a); 
             }
 
             else 
             { 
-                struct bigreal a;
+                struct fraction a;
                 a.sign = 0;  // this should never happen, so if it does, there's an error
                 return a;
             }
@@ -305,8 +324,8 @@ struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
         {
 
             // if not an operator, just add to the stack
-            // makes a bigreal from the numbers in the stack
-            stack[top_stack] = bigreal_init(str_to_u64(parsed[x]), 1, 1);
+            // makes a fraction from the numbers in the stack
+            stack[top_stack] = fraction_init(str_to_u64(parsed[x]), 1, 1);
             top_stack += 1;
 
         }

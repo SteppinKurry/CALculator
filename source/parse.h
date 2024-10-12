@@ -8,7 +8,6 @@
 #include "calmath.h"
 #include "sizes.h"
 #include "ui.h"
-#include "sizes.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -20,7 +19,9 @@ char is_operator(char e);
 u8 get_op_precedence(char a);
 char is_valid_number(char* number);
 char has_precedence(char a, char b);
-struct bigreal evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN]);
+struct fraction evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN]);
+
+enum operators char_to_op(char c);
 
 //struct bigreal basic_do_math(struct tokenized wang);
 

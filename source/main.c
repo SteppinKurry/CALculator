@@ -2,23 +2,62 @@
 // Trying to make an "advanced" (TI-84 tier, at best) calculator
 // software for DS
 
-// Includes C
+#include <nds.h>
 #include <stdio.h>
 #include <time.h>
 
-#include <nds.h>
-
+#include "calmath.h"
 #include "ui.h"
 #include "parse.h"
-#include "calmath.h"
-#include "irrational_math.h"
 #include "sizes.h"
+#include "node.h"
+
+int8 add_char_to_expression(char* expression, char c, u8* expression_len)
+{
+	// 10-3-24
+	// Adds the next number/operator to the expression string
+
+	// '@' means that no button was actually pressed, so return 
+	// 1 and do nothing
+	if (c == '@') { return 1; }
+
+	// proceed like normal
+	expression[*expression_len] = c;
+	*expression_len += 1;
+	if (*expression_len >= MAX_EXP_CHARS) { *expression_len = 0; expression[0] = '\0'; }
+	expression[*expression_len] = '\0';
+
+	return 0;
+}
+
+char button_num_to_char(u8 b)
+{
+	// 10-3-24
+	// Turns a number representing a calculator button into the 
+	// character that represents it
+	u8 buttons[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+				   '+', '-', '*', '/', '=', 'c', '(', ')', '^' };
+
+	// if no button is pressed, return something weird
+	if (b == 255) { return '@'; }
+
+
+	return buttons[b];
+
+}
 
 int main(int argc, char **argv) 
 {
 	// UI related things
 	ui_init();
 
+	// set variables for all of the UI's screens
+	struct ui_screen ui_main = ui_init_main_screen();
+	struct ui_screen ui_irrational = ui_init_irr_screen();
+
+	// pointer to the currently used screen
+	struct ui_screen* current_ui = &ui_main;
+	
 	NF_WriteText(0, 0, 1, 2, "\n==== CALculator ====\n\n");
 	NF_WriteText(0, 0, 2, 3, "hey there *winky face*\n\n");
 	
@@ -27,7 +66,7 @@ int main(int argc, char **argv)
 	touchPosition touch_screen = {0, 0, 0, 0};
 	int keys = keysDown();
 
-	char expression[64];
+	char expression[MAX_EXP_CHARS];
 	u8 expression_len = 0;
 
 	char tap_toggle = 0;
@@ -39,11 +78,7 @@ int main(int argc, char **argv)
 	char parsedstring[MATHSTR_LEN][MAX_NUM_LEN];
 
 	// initialize result variable
-	struct bigreal result;
-	result.numerator = 0;
-	result.denominator = 1;
-	result.sign = 1;
-
+	struct fraction result = fraction_init(0, 1, 1);
 	
 	u8 whereprint = 15;
 
@@ -65,17 +100,17 @@ int main(int argc, char **argv)
 			tap_toggle = 0;
 
 			// figure out which virtual button was touched
-			int button = check_touch(&touch_screen);
+			int button = check_touch(&touch_screen, current_ui);
 			iprintf("button: %d\n\n", button);
 
 			// do the thing with the button
 			if (button == 14) // equal sign
 			{ 
 
-				if (result.denominator > 1)
+				if (result.denominator > 1 && expression_len == 0)
 				{
 					// if the last answer was a fraction, pressing equal again 
-					// will output the decimal approximation of the fraction
+					// will print the decimal approximation of the fraction
 
 					char weenres[200];
 					whereprint = 20;
@@ -99,63 +134,47 @@ int main(int argc, char **argv)
 					whereprint = 15;
 					calc_main_print("                                                ", &whereprint, 0);
 					
-					// reset the result variable
-					result.numerator = 0;
-					result.denominator = 1;
-					result.sign = 1;
-
 					continue;
 				}
 
-				// char expression[] = "(2/15)-(2/45)";
+				//char expression[] = "9^7";
 				
-				// reset the result variable
-				result.numerator = 0;
-				result.denominator = 1;
-				result.sign = 1;
-
 				memset(mathstring, '\0', sizeof(mathstring));
 				memset(parsedstring, '\0', sizeof(parsedstring));
 
+				// tokenize, parse, and evaluate the expression
 				tokenize(expression, mathstring);
 				parse(mathstring, parsedstring);
-				result = evaluate_parsedstring(parsedstring);
+
+				struct unsimple_exp uexp = unsimple_exp_init();
+				u8 error = construct_unsimple_from_parsedstring(parsedstring, &uexp);
+				
+				// ast error (scary)
+				if (error == 1)
+				{
+					whereprint = 10;
+					calc_main_print("FUCK", &whereprint, 1);
+				}
+
+				unsimple_simplify(&uexp);
+				result = unsimple_evaluate(&uexp);
 
 				char weenres[200];
-				whereprint = 16;
-
-				sprintf(weenres, "parsed size: %s", mathstring[0]);
 				whereprint = 20;
 
 				calc_main_print("                                                                ", &whereprint, 0);
 				calc_main_print("BEHOLD: ", &whereprint, 1);
 
-
 				// makes the result look nicer when it's printed
-				if (result.denominator == 1) 
-				{ 
-					if (result.sign == -1) { sprintf(weenres, "%s = -%lld", expression, result.numerator); }
-					else { sprintf(weenres, "%s = %lld", expression, result.numerator); }
-					
-				}
-				else
-				{
-					if (result.sign == -1) 
-					{
-						sprintf(weenres, "%s = -%lld\\%lld", expression, result.numerator, result.denominator);
-					}
-					else
-					{
-						sprintf(weenres, "%s = %llu\\%llu", expression, result.numerator, result.denominator);
-					}
+				nice_fraction_print(result.numerator, result.denominator, result.sign, expression, weenres);
 
-				}
+				// reset the output to have the postorder of the expression
+				postorder(&uexp, weenres);
 
-				result = root(bigreal_init(16, 1, 1), 2);
-				sprintf(weenres, "root = %lld/%lld", result.numerator, result.denominator);
-
+				// print whatever is in weenres
 				calc_main_print(weenres, &whereprint, 0);
 
+				// reset the expression
 				expression[0] = '\0';
 				expression_len = 0;
 
@@ -163,101 +182,44 @@ int main(int argc, char **argv)
 				calc_main_print("                                                ", &whereprint, 0);
 			}
 
-			else if (button >= 0 && button <= 9)
-			{
-				expression[expression_len] = button + '0';
-				expression_len += 1;
-				if (expression_len >= 64) { expression_len = 0; expression[0] = '\0'; }
-				expression[expression_len] = '\0';
-				calc_main_print(expression, &whereprint, 0);
-
-			}
-
-			else if (button == 10)
-			{
-				expression[expression_len] = '+';
-				expression_len += 1;
-				if (expression_len >= 64) { expression_len = 0; expression[0] = '\0'; }
-				expression[expression_len] = '\0';
-				calc_main_print(expression, &whereprint, 0);
-
-			}
-
-			else if (button == 11)
-			{
-				expression[expression_len] = '-';
-				expression_len += 1;
-				if (expression_len >= 64) { expression_len = 0; expression[0] = '\0'; }
-				expression[expression_len] = '\0';
-				calc_main_print(expression, &whereprint, 0);
-
-			}
-
-			else if (button == 12)
-			{
-				expression[expression_len] = '*';
-				expression_len += 1;
-				if (expression_len >= 64) { expression_len = 0; expression[0] = '\0'; }
-				expression[expression_len] = '\0';
-				calc_main_print(expression, &whereprint, 0);
-
-			}
-
-			else if (button == 13) // fraction button
-			{
-				expression[expression_len] = '/';
-				expression_len += 1;
-				if (expression_len >= 64) { expression_len = 0; expression[0] = '\0'; }
-				expression[expression_len] = '\0';
-				calc_main_print(expression, &whereprint, 0);
-
-			}
-
-			else if (button == 15) // clear button
+			// clear button
+			else if (button == 15)
 			{
 				memset(mathstring, '\0', sizeof(mathstring));
 				memset(parsedstring, '\0', sizeof(parsedstring));
+
+				result = fraction_init(1, 1, 1);
 
 				NF_ClearTextLayer(0, 0);
 
 				expression[0] = '\0';
 				expression_len = 0;
-
 			}
 			
-			else if (button == 16) // (
+			// any button that isn't clear or equal sign
+			else
 			{
-				expression[expression_len] = '(';
-				expression_len += 1;
-				if (expression_len >= 64) { expression_len = 0; expression[0] = '\0'; }
-				expression[expression_len] = '\0';
+				add_char_to_expression(expression, button_num_to_char(button), &expression_len);
 				calc_main_print(expression, &whereprint, 0);
-
-			}
-
-			else if (button == 17) // )
-			{
-				expression[expression_len] = ')';
-				expression_len += 1;
-				if (expression_len >= 64) { expression_len = 0; expression[0] = '\0'; }
-				expression[expression_len] = '\0';
-				calc_main_print(expression, &whereprint, 0);
-
-			}
-
-			else if (button == 18) // ^
-			{
-				expression[expression_len] = '^';
-				expression_len += 1;
-				if (expression_len >= 64) { expression_len = 0; expression[0] = '\0'; }
-				expression[expression_len] = '\0';
-				calc_main_print(expression, &whereprint, 0);
-
 			}
 
 		}
 
+		// change to the irrational button set
+		if (keys & KEY_UP)
+		{
+			set_bottom_ui(&ui_irrational);
+			current_ui = &ui_irrational;
+		}
+		
+		// change to the regular button set
+		if (keys & KEY_DOWN)
+		{
+			set_bottom_ui(&ui_main);
+			current_ui = &ui_main;
+		}
 
+		// quit program
 		if (keys & KEY_START) break;
 
 		NF_UpdateTextLayers();

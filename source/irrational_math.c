@@ -1,15 +1,14 @@
 // 9-30-24
 
-#include "irrational_math.h"
 #include "calmath.h"
 #include <stdio.h>
 #include <strings.h>
 
-struct bigreal root(struct bigreal a, u64 index)
+struct fraction root(struct fraction a, u64 index)
 {
     // 9-30-24
     // This uses the method of bisection to calculate the root 
-    // of a bigreal. The returned bigreal will be an approximation 
+    // of a fraction. The returned fraction will be an approximation 
     // of the root
 
     double divided = (double) a.numerator / a.denominator;
@@ -43,7 +42,7 @@ struct bigreal root(struct bigreal a, u64 index)
 
     }
 
-    // convert the midpoint into a bigreal
+    // convert the midpoint into a fraction
     u8 digits_after_decimal = 5;
     char buffer[32];
 
@@ -54,47 +53,8 @@ struct bigreal root(struct bigreal a, u64 index)
 
     u64 large_ten = power(10, digits_after_decimal);
     midpoint *= large_ten;
-    a = bigreal_init(midpoint, 1, 1);
+    a = fraction_init(midpoint, 1, 1);
 
     return a;
-
-
-// struct bigreal root(struct bigreal a, u64 index)
-// {
-//     // 9-30-24
-//     // This uses the method of bisection to calculate the root 
-//     // of a bigreal. The returned bigreal will be an approximation 
-//     // of the root
-
-//     struct bigreal top = a;
-//     struct bigreal bottom = bigreal_init(0, 1, 1);
-//     struct bigreal midpoint = bigreal_init(0, 1, 1);
-
-//     // the root will be within this distance from the true answer
-//     struct bigreal tolerance = bigreal_init(1,  100000, 1);
-
-//     // while the difference between the top and bottom isn't close enough
-//     while (bigreal_is_greater_than(bigreal_sub(top, bottom), tolerance) )
-//     {
-
-//         // calculate the new midpoint
-//         midpoint = bigreal_multiply(bigreal_add(top, bottom), bigreal_init(1, 2, 1));
-
-//         if (bigreal_is_greater_than(bigreal_basic_power(midpoint, index), a))
-//         {
-//             top = midpoint;
-//         }
-
-//         else
-//         {
-//             bottom = midpoint;
-//         }
-
-//     }
-
-//     return midpoint;
-
-
-
 
 }
