@@ -12,37 +12,34 @@
 #include "sizes.h"
 #include "node.h"
 
-int8 add_char_to_expression(char* expression, char c, u8* expression_len)
+
+int8 button_num_into_str(u8 b, char* expression, u8* expression_len)
 {
-	// 10-3-24
-	// Adds the next number/operator to the expression string
+	// 10-12-24
+	// Takes a button id, the current, and the length of the current 
+	// expression and adds the correct character(s) based upon the 
+	// button id
 
-	// '@' means that no button was actually pressed, so return 
-	// 1 and do nothing
-	if (c == '@') { return 1; }
+	// if no button is pressed, do nothing
+	if (b == 255) { return -1; }
 
-	// proceed like normal
-	expression[*expression_len] = c;
-	*expression_len += 1;
-	if (*expression_len >= MAX_EXP_CHARS) { *expression_len = 0; expression[0] = '\0'; }
-	expression[*expression_len] = '\0';
+	// each of the possible strings a button press could result in
+	char buttons[][6] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
+				   		 "+", "-", "*", "/", "=", "c", "(", ")", "^", 
+						 "pi", "sin(", "sin(", "e", "cos(", "cos(", "E", "tan(", "tan(", 
+						 "sqrt(" };
 
-	return 0;
-}
+	// if the final expression will be too long, reset it
+	if (*expression_len + strlen(buttons[b])>= MAX_EXP_CHARS) { *expression_len = 0; expression[0] = '\0'; }
 
-char button_num_to_char(u8 b)
-{
-	// 10-3-24
-	// Turns a number representing a calculator button into the 
-	// character that represents it
-	u8 buttons[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
-				   '+', '-', '*', '/', '=', 'c', '(', ')', '^' };
+	// add the new part to the expression
+	strcat(expression, buttons[b]);
 
-	// if no button is pressed, return something weird
-	if (b == 255) { return '@'; }
+	// increment expression len
+	*expression_len += strlen(buttons[b]);
 
-
-	return buttons[b];
+	// worked fine
+	return 0;	
 
 }
 
@@ -110,7 +107,7 @@ int main(int argc, char **argv)
 				if (result.denominator > 1 && expression_len == 0)
 				{
 					// if the last answer was a fraction, pressing equal again 
-					// will print the decimal approximation of the fraction
+					// will show the decimal approximation of the fraction
 
 					char weenres[200];
 					whereprint = 20;
@@ -137,7 +134,8 @@ int main(int argc, char **argv)
 					continue;
 				}
 
-				//char expression[] = "9^7";
+				// char expression[] = "tan(5+3*2)^2-sin(sqrt(16)+4)+7/(1+3)^2";
+				// char expression[] = "(5+3*2)";
 				
 				memset(mathstring, '\0', sizeof(mathstring));
 				memset(parsedstring, '\0', sizeof(parsedstring));
@@ -156,11 +154,11 @@ int main(int argc, char **argv)
 					calc_main_print("FUCK", &whereprint, 1);
 				}
 
-				unsimple_simplify(&uexp);
+				//unsimple_simplify(&uexp);
 				result = unsimple_evaluate(&uexp);
 
 				char weenres[200];
-				whereprint = 20;
+				whereprint = 17;
 
 				calc_main_print("                                                                ", &whereprint, 0);
 				calc_main_print("BEHOLD: ", &whereprint, 1);
@@ -169,7 +167,20 @@ int main(int argc, char **argv)
 				nice_fraction_print(result.numerator, result.denominator, result.sign, expression, weenres);
 
 				// reset the output to have the postorder of the expression
-				postorder(&uexp, weenres);
+				///postorder(&uexp, weenres);
+
+				// sprintf(weenres, "%d", uexp.root->left->op);
+
+				// weenres[0] = '\0';
+				// for (int x = 1; x <= atoi(parsedstring[0]); x++)
+				// {
+				// 	char peen[20];
+				// 	sprintf(peen, "%s|", parsedstring[x]);
+
+				// 	strcat(weenres, peen);
+				// }
+
+				//sprintf(weenres, "%s", mathstring[0]);
 
 				// print whatever is in weenres
 				calc_main_print(weenres, &whereprint, 0);
@@ -185,13 +196,17 @@ int main(int argc, char **argv)
 			// clear button
 			else if (button == 15)
 			{
+				// reset each string
 				memset(mathstring, '\0', sizeof(mathstring));
 				memset(parsedstring, '\0', sizeof(parsedstring));
 
+				// reset result
 				result = fraction_init(1, 1, 1);
 
+				// clear the console
 				NF_ClearTextLayer(0, 0);
 
+				// reset expression
 				expression[0] = '\0';
 				expression_len = 0;
 			}
@@ -199,7 +214,8 @@ int main(int argc, char **argv)
 			// any button that isn't clear or equal sign
 			else
 			{
-				add_char_to_expression(expression, button_num_to_char(button), &expression_len);
+				//add_char_to_expression(expression, button_num_to_char(button), &expression_len);
+				button_num_into_str(button, expression, &expression_len);
 				calc_main_print(expression, &whereprint, 0);
 			}
 

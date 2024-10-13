@@ -22,6 +22,7 @@ struct ui_screen
     u8 button_layout[MAX_UI_BUTTONS][2];
     u8 num_buttons;
     u8 button_size;
+    u8 butt_offset;
 
     char bg_name[MAX_BG_NAME_CHARS];
 

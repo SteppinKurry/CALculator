@@ -2,53 +2,82 @@
 
 #include "parse.h"
 
-char operatorsOld[] = { '+', '1', '-', '1', '*', '2', '/', '2', '^', '3', '(', '4', ')', '4' };
-int num_ops = 7;
+int num_ops = 12;
+char valid_ops[][5] = { "+", "-", "*", "/", "(", ")", "^", 
+	                    "sin", "cos", "E", "tan", "sqrt" };
 
-enum operators char_to_op(char c)
+enum operators str_to_op(char* c)
 {
-    if (c == '+') return ADD;
-    if (c == '-') return SUB;
-    if (c == '*') return MUL;
-    if (c == '/') return DIV;
-    if (c == '^') return POW;
-    if (c == '(') return LPAREN;
-    if (c == ')') return RPAREN;
+    if (!strcmp(c, "+")) return ADD;
+    if (!strcmp(c, "-")) return SUB;
+    if (!strcmp(c, "*")) return MUL;
+    if (!strcmp(c, "/")) return DIV;
+    if (!strcmp(c, "^")) return POW;
+    if (!strcmp(c, "(")) return LPAREN;
+    if (!strcmp(c, ")")) return RPAREN;
+    if (!strcmp(c, "sin")) return SIN;
+    if (!strcmp(c, "cos")) return COS;
+    if (!strcmp(c, "tan")) return TAN;
+    if (!strcmp(c, "E")) return E;
+    if (!strcmp(c, "sqrt")) return SQRT;
 
     return NOOP;
 }
 
-char is_operator(char e)
+bool is_math_func(enum operators op)
 {
-    // 9-7-24
-    // Tests whether or not the given character is a 
+
+    // 10-12-24
+    // Returns true if the given operator is a math function/
+    // just a unary operator
+
+    if (op == ADD || op == SUB || op == DIV || op == MUL || op == POW ||
+        op == LPAREN || op == RPAREN || op == E)
+
+        {
+            return false;
+        }
+
+    return true;
+
+
+}
+
+bool is_operator(char* e)
+{
+    // 10-12-24
+    // Tests whether or not the given string is a 
     // recognized operator
 
-    for (int x = 0; x < num_ops * 2; x += 2)
+    for (int x = 0; x < num_ops; x ++)
     {
-        if (e == operatorsOld[x]) { return 1; }
-    }  
-
-    return 0;
-}
-
-u8 get_op_precedence(char a)
-{
-
-    // loop through all operators
-    for (int x = 0; x < num_ops*2; x += 2)
-    {
-
-        // when a match is found, return the precedence level 
-        // of the operator
-        if (a == operatorsOld[x]) { return atoi(&operatorsOld[x+1]); }
+        if (!strcmp(e, valid_ops[x])) { return true; }
     }
 
-    // no operator was found, return 0
-    return 0;
+    return false;
 }
 
-char has_precedence(char a, char b)
+u8 get_op_precedence(char* a)
+{
+    // 10-12-24
+    // This is, admittedly, another smooth-brain implementation
+
+    // return 0 if it's not even an operator
+    if (!is_operator(a)) { return 0; }
+
+    // basic operators
+    if (!strcmp(a, "+") || !strcmp(a, "-")) { return 1; }
+    if (!strcmp(a, "*") || !strcmp(a, "/")) { return 2; }
+    if (!strcmp(a, "^")) { return 3; }
+    if (!strcmp(a, "(") || !strcmp(a, ")")) { return 255; } // ultimate precedence
+    
+
+    // anything unspecified should just be a math function, and therefore 
+    // a higher precedence than anything else 
+    return 4;
+}
+
+bool a_has_precedence(char* a, char* b)
 {
     u8 a_prec = get_op_precedence(a);
     u8 b_prec = get_op_precedence(b);
@@ -59,71 +88,110 @@ char has_precedence(char a, char b)
 
 u8 tokenize(char* expression, char mathstring[MATHSTR_LEN][MAX_NUM_LEN])
 {
-    // 9-9-24
+    // 9-9-24 (updated 10-12-24 to add multi-character operator support)
     // Accepts a string with a mathematical expression and breaks 
     // it into smaller pieces for the parser. Outputs a 2D array 
     // with each individual part of the given expression. The expression 
     // is split up based upon operators
 
     // setup a few things
-    char current[MAX_NUM_LEN+3];
+    char current_num[MAX_NUM_LEN+3];
+    char current_op[MAX_NUM_LEN+3];
+
+    bool making_op = false;
     u8 output_index = 1;
-    u8 current_len = 0;
+    u8 current_num_len = 0;
+    u8 current_op_len = 0;
+
     u8 expression_len = strlen(expression);
 
     // loop through the given expression
     for (int x = 0; x < expression_len; x++)
     {
-
-        // if an operator is found, put current into
-        // its own section in the output
-        if (is_operator(expression[x]))
+        
+        if (!making_op && !isdigit((unsigned char)expression[x]))
         {
-            // copy over current and the current operator
-            if (current_len == 0)
+            making_op = true;
+        }
+
+        if (making_op)
+        {
+            // only add the character if current has room left
+            if (current_op_len < MAX_NUM_LEN)
             {
-                strncpy(mathstring[output_index], &expression[x], 1);
+                current_op[current_op_len] = expression[x];
+                current_op[current_op_len+1] = '\0';
+                current_op_len += 1;
+            }
+            
+        }
+        else
+        {
+            // only add the character if current has room left
+            if (current_num_len < MAX_NUM_LEN)
+            {
+                current_num[current_num_len] = expression[x];
+                current_num[current_num_len+1] = '\0';
+                current_num_len += 1;
+            }
+            
+            if (current_num_len >= MAX_NUM_LEN)
+            {
+                current_num[MAX_NUM_LEN-1] = '\0';
+            }
+        }
+
+        if (making_op && is_operator(current_op))
+        {
+
+            // copy over the current number and the current operator
+
+            if (current_num_len == 0) // two operators in a row (parentheses or something)
+            {
+                snprintf(mathstring[output_index], MAX_NUM_LEN, "%.*s", current_op_len, current_op);
                 output_index -= 1;
             }
-            else
+            else    // normal behavior
             {
+
                 // make sure the number isn't too big
-                if (current_len > MAX_NUM_LEN) { current_len = MAX_NUM_LEN; }
+                if (current_num_len > MAX_NUM_LEN) { current_num_len = MAX_NUM_LEN; }
 
                 // copy everything over
-                snprintf(mathstring[output_index], MAX_NUM_LEN, "%.*s", current_len, current);
-                strncpy(mathstring[output_index+1], &expression[x], 1);
+                snprintf(mathstring[output_index], MAX_NUM_LEN, "%.*s", current_num_len, current_num);
+                snprintf(mathstring[output_index+1], MAX_NUM_LEN, "%.*s", current_op_len, current_op);
             }
 
             // reset some things
             output_index += 2;
-            current_len = 0;
-        }
+            current_num_len = 0;
+            current_op_len = 0;
 
-        // otherwise, add the current character to current
-        else
-        {
-            // only add the character if current has room left
-            if (current_len < MAX_NUM_LEN)
-            {
-                current[current_len] = expression[x];
-                current_len += 1;
-            }
-            
-            if (current_len >= MAX_NUM_LEN)
-            {
-                current[MAX_NUM_LEN-1] = '\0';
-            }
+            making_op = false;
+
         }
 
     }
 
     // append the final current to the output
-    if (current_len >= MAX_NUM_LEN) { current_len = MAX_NUM_LEN; }
-    snprintf(mathstring[output_index], MAX_NUM_LEN, "%.*s", current_len, current);
+    if (making_op)
+    {
+        if (current_op_len >= MAX_NUM_LEN) { current_op_len = MAX_NUM_LEN; }
+        snprintf(mathstring[output_index], MAX_NUM_LEN, "%.*s", current_op_len, current_op);
+
+    }
+    
+    else if (current_num_len != 0)
+    {
+        if (current_num_len >= MAX_NUM_LEN) { current_num_len = MAX_NUM_LEN; }
+        snprintf(mathstring[output_index], MAX_NUM_LEN, "%.*s", current_num_len, current_num);
+
+        output_index += 1;
+
+    }
 
     // store the number of elements in the output in the output
-    sprintf(mathstring[0], "%d", output_index);
+    sprintf(mathstring[0], "%d", output_index-1);
 
     // it worked (hopefully)
     return 0;
@@ -131,7 +199,7 @@ u8 tokenize(char* expression, char mathstring[MATHSTR_LEN][MAX_NUM_LEN])
 
 }
 
-char is_valid_number(char* number)
+bool is_valid_number(char* number)
 {
     // 9-9-24
     // Checks whether or not the given string is a number
@@ -139,37 +207,32 @@ char is_valid_number(char* number)
     u8 len = strlen(number);
     
     // return if empty
-    if (len <= 0) { return 0; }
-
-    // // return if the first thing isn't a minus or a number
-    // if (number[0] != '-' && !isdigit((unsigned char)number[0])) { return 0; }
+    if (len <= 0) { return false; }
 
     // check everything else
     for (int x = 0; x < len; x++)
     {
-        if (!isdigit((unsigned char)number[x])) { return 0; }
+        if (!isdigit((unsigned char)number[x])) { return false; }
     }
 
     // if here, it's a number
-    return 1;
+    return true;
 
 }
 
 u8 parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX_NUM_LEN])
 {
 
-    // 9-9-24
+    // 9-9-24 (modified 10-12-24 for the multi-character operator support)
     // Uses the shunting yard algorithm to turn an infix math 
     // expression (mathstring) into the same expression represented 
     // in postfix notation. You can get a mathstring from the tokenize 
     // function.
 
-    char op_stack[MATHSTR_LEN];
+    char op_stack[MATHSTR_LEN][5];
     u8 parsed_ind = 1;
     u8 op_stack_top = 0;
     
-    int flag = 0;
-
     // loops through each thing in the expression
     for (int x = 1; x < atoi(mathstring[0]) + 1; x++)
     {
@@ -182,50 +245,48 @@ u8 parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX
 
         }
 
-        // if it's an operator
-        else if ( (is_operator(mathstring[x][0])) && (mathstring[x][0] != '(') && (mathstring[x][0] != ')') )
+        // if it's an operator and not a parenthesis
+        else if ( is_operator(mathstring[x]) && strcmp(mathstring[x], "(") && strcmp(mathstring[x], ")") )
         {
 
             // while the thing at the top of the op stack has greater 
             // precedence than the current op
-            while ( (op_stack_top != 0) && (has_precedence(op_stack[op_stack_top], mathstring[x][0])) 
-                     && (op_stack[op_stack_top] != '(') )
+            while ( (op_stack_top != 0) && (a_has_precedence(op_stack[op_stack_top], mathstring[x])) 
+                     && (strcmp(op_stack[op_stack_top], "(")) )
             {
 
                 // remove things from the operator stack and put 
                 // them in the output
-                parsed[parsed_ind][0] = op_stack[op_stack_top];
-                parsed[parsed_ind][1] = '\0';
+                strcpy(parsed[parsed_ind], op_stack[op_stack_top]);
+
                 op_stack_top -= 1;
                 parsed_ind += 1;
 
-                flag += 1;
             }
 
             // add the current operator to the stack
             op_stack_top += 1;
-            op_stack[op_stack_top] = mathstring[x][0];
+            strcpy(op_stack[op_stack_top], mathstring[x]);
                             
         }
 
         // if open parenthesis
-        else if (mathstring[x][0] == '(')
+        else if (!strcmp(mathstring[x], "(") )
         {
             // add it to the stack like usual
             op_stack_top += 1;
-            op_stack[op_stack_top] = mathstring[x][0];
+            strcpy(op_stack[op_stack_top], mathstring[x]);
         }
 
         // if close parenthesis
-        else if (mathstring[x][0] == ')')
+        else if (!strcmp(mathstring[x], ")"))
         {
 
             // remove everything from the op stack until you 
             // reach an open parenthesis    
-            while (op_stack[op_stack_top] != '(')
+            while (strcmp(op_stack[op_stack_top], "("))
             {
-                parsed[parsed_ind][0] = op_stack[op_stack_top];
-                parsed[parsed_ind][1] = '\0';
+                strcpy(parsed[parsed_ind], op_stack[op_stack_top]);
 
                 op_stack_top -= 1;
                 parsed_ind += 1;
@@ -233,11 +294,11 @@ u8 parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX
 
             // if the current thing at the top of the stack isn't an 
             // open parenthesis, complain
-            if (op_stack[op_stack_top] != '(')
+            if (strcmp(op_stack[op_stack_top], "("))
             {
                 char weenres[80];
                 u8 peen = 15;
-                sprintf(weenres, "s000000000000 angry: %c", op_stack[op_stack_top]);
+                sprintf(weenres, "s000000000000 angry: %s", op_stack[op_stack_top]);
                 calc_main_print(weenres, &peen, 0);
 
                 // return with error 1
@@ -252,8 +313,7 @@ u8 parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX
     // into the output
     while (op_stack_top > 0)
     {
-        parsed[parsed_ind][0] = op_stack[op_stack_top];
-        parsed[parsed_ind][1] = '\0';
+        strcpy(parsed[parsed_ind], op_stack[op_stack_top]);
 
         parsed_ind += 1;
         op_stack_top -= 1;
@@ -265,74 +325,4 @@ u8 parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX
 
     // worked without error
     return 0;
-}
-
-struct fraction evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN])
-{
-    // 9-9-24
-    // evaluates a postfix expression and returns an actual result 
-    // in the form of a fraction *sunglasses emoji*
-
-    struct fraction stack[MATHSTR_LEN];
-    u8 top_stack = 0;
-
-    // loops through each element of the expression
-    for (int x = 1; x < atoi(parsed[0]); x++)
-    {
-
-        // if the current element is an operator, evaluate it using the 
-        // last two numbers in the stack
-        if (is_operator(parsed[x][0]))
-        {
-            // pop last two things off stack
-            struct fraction b = stack[top_stack-1];
-            struct fraction a = stack[top_stack-2];
-
-            top_stack -= 2;
-
-            // do the calculation
-            if (!strcmp(parsed[x], "+")) { a = fraction_add(a, b); }
-            else if (!strcmp(parsed[x], "-")) { a = fraction_sub(a, b); }
-            else if (!strcmp(parsed[x], "*")) { a = fraction_mul(a, b); }
-            else if (!strcmp(parsed[x], "^")) { a = fraction_basic_power(a, b); }
-            else if (!strcmp(parsed[x], "/")) 
-            {
-
-                // flip b (whatever it may be)
-                b = fraction_reciprocal(b);
-                
-                // b is now the reciprocal of b, multiply by a
-                a = fraction_mul(a, b);
-
-                // simplify
-                a = fraction_simplify(a); 
-            }
-
-            else 
-            { 
-                struct fraction a;
-                a.sign = 0;  // this should never happen, so if it does, there's an error
-                return a;
-            }
-
-            // put the result at the top of the stack
-            stack[top_stack] = a;
-            top_stack += 1;
-
-        }
-        else
-        {
-
-            // if not an operator, just add to the stack
-            // makes a fraction from the numbers in the stack
-            stack[top_stack] = fraction_init(str_to_u64(parsed[x]), 1, 1);
-            top_stack += 1;
-
-        }
-
-    }
-    
-    // return the result
-    return stack[top_stack-1];
-
 }

@@ -14,22 +14,23 @@ struct ui_screen ui_init_main_screen()
 	struct ui_screen ui;
 
 	ui.num_buttons = 19;
+	ui.button_size = 40;
+	ui.butt_offset = 0;
+	sprintf(ui.bg_name, "%s", "./bg/buttons-main");
+	NF_LoadTiledBg(ui.bg_name, ui.bg_name, 256, 256);
 
 	// the x and y coordinates of the top left corner of each button on the bottom screen
-	u8 button_layout[][2] = {{5, 149}, {5, 102}, {53, 102}, {100, 102}, {5, 53}, {53, 53}, {102, 53},
-									{5, 5}, {53, 5}, {102, 5}, {211, 3}, {211, 51}, {211, 99}, {211, 147}, {102, 149}, 
-									{147, 3}, {147, 51}, {147, 99}, {147, 147}};
+	u8 button_layout[][2] = {
+		
+		{5, 149}, {5, 102}, {53, 102}, {100, 102}, {5, 53}, {53, 53}, {102, 53},
+		{5, 5}, {53, 5}, {102, 5}, {211, 3}, {211, 51}, {211, 99}, {211, 147}, {102, 149}, 
+		{147, 3}, {147, 51}, {147, 99}, {147, 147}};
 
 	
 	fill_ui_layout(&ui, button_layout);
 
 	// indices 0-9 are buttons 0-9, followed by plus, minus, multiply, divide, and equal
 	// now followed up by left and right parentheses, clear, and exponent 
-	ui.button_size = 40;
-
-	sprintf(ui.bg_name, "%s", "./bg/buttons-main");
-
-	NF_LoadTiledBg(ui.bg_name, ui.bg_name, 256, 256);
 
 	return ui;
 }
@@ -41,6 +42,10 @@ struct ui_screen ui_init_irr_screen()
 	struct ui_screen ui;
 
 	ui.num_buttons = 10;
+	ui.button_size = 40;
+	ui.butt_offset = 19;
+	sprintf(ui.bg_name, "%s", "./bg/buttons-irrational");
+	NF_LoadTiledBg(ui.bg_name, ui.bg_name, 256, 256);
 
 	// the x and y coordinates of the top left corner of each button on the bottom screen
 	u8 button_layout[][2] = 
@@ -57,11 +62,6 @@ struct ui_screen ui_init_irr_screen()
 
 	// indices 0-9 are buttons 0-9, followed by plus, minus, multiply, divide, and equal
 	// now followed up by left and right parentheses, clear, and exponent 
-	ui.button_size = 40;
-
-	sprintf(ui.bg_name, "%s", "./bg/buttons-irrational");
-
-	NF_LoadTiledBg(ui.bg_name, ui.bg_name, 256, 256);
 
 	return ui;
 }
@@ -193,7 +193,7 @@ u8 check_touch(touchPosition* tp, struct ui_screen* ui)
 		char x_collision = (bx <= x) && (x <= bx + button_size);
 		char y_collision = (by <= y) && (y <= by + button_size);
 
-		if (x_collision && y_collision) { return i; }
+		if (x_collision && y_collision) { return i + ui->butt_offset; }
 	}
 
 	return 255; // this means nothing was found

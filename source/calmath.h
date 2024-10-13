@@ -25,7 +25,9 @@ enum operators
     SIN = 8,
     COS = 9,
     TAN = 10,
-    LOG = 11
+    LOG = 11,
+    E = 12,
+    SQRT = 13
 
 };
 
@@ -85,6 +87,8 @@ struct node* unsimple_add_node(struct node n, struct unsimple_exp* tree);
 int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN], struct unsimple_exp* tree);
 int8 unsimple_simplify(struct unsimple_exp* tree);
 int8 unsimple_simplify_node(struct node* n);
+
+int8 unsimple_combine_scalars(struct node* n);
 
 int8 unsimple_rewrite(struct node* n);
 int8 addition_rewrites(struct node* n);

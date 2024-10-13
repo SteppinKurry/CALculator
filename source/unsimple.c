@@ -34,11 +34,13 @@ struct unsimple_exp unsimple_exp_init()
 
 struct node* unsimple_add_node(struct node n, struct unsimple_exp* tree)
 {
+    // 10-10-24
+    // Adds a new node to the first empty spot in the tree's node array. Does 
+    // not necessarily link the new node to any other nodes, so make sure you 
+    // do that manually before adding it to the tree.
 
-    // tree is definitely full
-    // if (tree->num_nodes >= MAX_TREE_NODES) { return NULL; }
 
-    // tree may be open
+    // find a place in the tree to put the node
     for (int x = 0; x < MAX_TREE_NODES; x++)
     {
         // found an open spot, add the node and return it's address 
@@ -47,8 +49,6 @@ struct node* unsimple_add_node(struct node n, struct unsimple_exp* tree)
         {
             // copy the given node into the tree's nodes
             node_copy(&n, &tree->nodes[x]);
-
-            // tree->num_nodes += 1;
             
             // return the address of the node in the tree
             return &tree->nodes[x];
@@ -63,7 +63,7 @@ struct node* unsimple_add_node(struct node n, struct unsimple_exp* tree)
 
 int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN], struct unsimple_exp* tree)
 {
-    // 10-10-24
+    // 10-10-24 (updated 10-12-24 for the multi-character operators)
     // Builds an abstract syntax tree (AST) from a postfix 
     // (parsedstring) expression
 
@@ -76,16 +76,34 @@ int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN],
 
         // if the current element is an operator, evaluate it using the 
         // last two numbers in the stack
-        if (is_operator(parsed[x][0]))
+        if (is_operator(parsed[x]))
         {
-            // pop last two things off stack
-            struct node* b = stack[top_stack-1];
-            struct node* a = stack[top_stack-2];
+            struct node new_node;
 
-            top_stack -= 2;
+            if (is_math_func(str_to_op(parsed[x])))
+            {
+                // if it's a unary operator, we only expect one operand
+                struct node* a = stack[top_stack-1];
+                top_stack -= 1;
 
-            // build the tree
-            struct node new_node = node_init_op(a, b, char_to_op(parsed[x][0]));
+                // build tree
+                new_node = node_init_op(a, NULL, str_to_op(parsed[x]));
+
+            }
+            else
+            {
+
+                // pop last two things off stack
+                struct node* b = stack[top_stack-1];
+                struct node* a = stack[top_stack-2];
+
+                top_stack -= 2;
+
+                // build the tree
+                new_node = node_init_op(a, b, str_to_op(parsed[x]));
+
+
+            }
 
             // put the result at the top of the stack
             stack[top_stack] = unsimple_add_node(new_node, tree);
@@ -95,8 +113,8 @@ int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN],
         else
         {
             // if not an operator, just add to the stack
-            // makes a node from the numbers in the stack
 
+            // makes a node from the numbers in the stack
             struct node new = node_init_num(NULL, NULL, fraction_init(str_to_u64(parsed[x]), 1, 1));
             stack[top_stack] = unsimple_add_node(new, tree);
 
@@ -120,11 +138,18 @@ int8 unsimple_simplify(struct unsimple_exp* tree)
 
     // rewrite/simplify parts of the expression using known 
     // rules (x*1 = x, sin^2(x)+cos^2(x) = 1, etc.)
+    unsimple_combine_scalars(tree->root);
     unsimple_rewrite(tree->root);
 
     return 0;
 }
 
+int8 unsimple_combine_scalars(struct node* n)
+{
+    // you should probably implement this
+
+    return 0;
+}
 
 struct fraction unsimple_evaluate(struct unsimple_exp* tree)
 {
