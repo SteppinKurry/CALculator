@@ -17,8 +17,11 @@ struct unsimple_exp unsimple_exp_init()
 
     struct unsimple_exp return_this;
 
-    // set all nodes to be "empty"
-    for (int x = 0; x < MAX_TREE_NODES; x++)
+    // set root node to zero
+    return_this.nodes[0] = node_init_num(NULL, NULL, fraction_init(0, 1, 1));
+
+    // set all other nodes to be "empty"
+    for (int x = 1; x < MAX_TREE_NODES; x++)
     {
         //return_this.nodes[x] = node_init_op(NULL, NULL, NOOP);
         node_set_empty(&return_this.nodes[x]);
@@ -129,26 +132,81 @@ int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN],
 
     // it worked?
     tree->root = stack[top_stack-1];
+    node_gen_hash(tree->root);
+
     return 0;
 
 }
 
 int8 unsimple_simplify(struct unsimple_exp* tree)
 {
+    
+    unsimple_combine_scalars_node(tree->root);
 
     // rewrite/simplify parts of the expression using known 
     // rules (x*1 = x, sin^2(x)+cos^2(x) = 1, etc.)
-    unsimple_combine_scalars(tree->root);
     unsimple_rewrite(tree->root);
+
+    unsimple_combine_scalars_node(tree->root);
 
     return 0;
 }
 
-int8 unsimple_combine_scalars(struct node* n)
+int8 unsimple_combine_scalars_node(struct node* n)
 {
-    // you should probably implement this
+    // 10-17-24
+    // Combines the easily-combinable numbers in a tree. For example, if 
+    // the expression was something like sin(3+9), it would be sin(12) after 
+    // this function executes. This is a preliminary step in simplifying 
+    // everything.
 
-    return 0;
+    // node doesn't exist, so return error
+    if (n == NULL || n->type == WAT) { return -1; }
+
+    // if it's already a number, return 0
+    if (n->type == NUM) { return 0; }
+
+    // if we're here, n must be an operator
+
+    // do subtrees first
+    int8 left = unsimple_combine_scalars_node(n->left);
+    int8 right = unsimple_combine_scalars_node(n->right);
+
+    // none of these result in irrational numbers, so the numbers can 
+    // just be combined
+    if (n->op == ADD || n->op == SUB || n->op == MUL || n->op == DIV)
+    {
+        // if one of the sides can't be simplified any further, do nothing
+        // 0 means good to keep combining
+
+        if (left != 0 || right != 0)
+        {
+            return -1;
+        }
+
+        // otherwise, just combine them and replace this node with the new value
+
+        // calculate the new number
+        struct fraction combined_frac = math_function_list[n->op](n->left->number, n->right->number);
+
+        // reset (delete) left and right nodes
+        node_set_empty(n->left);
+        node_set_empty(n->right);
+
+        // turn this node into a number node and set its value to the 
+        // previously calculated value
+        *n = node_init_num(NULL, NULL, combined_frac);
+        node_gen_hash(n);
+
+        // return 0 so that we can keep going later
+        return 0;
+    }
+
+    // if we're here, n is some weird, potentially irrational operator, and
+    // we can't easily combine that, so do nothing with it
+    return -1;
+
+
 }
 
 struct fraction unsimple_evaluate(struct unsimple_exp* tree)

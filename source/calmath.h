@@ -5,10 +5,11 @@
 #define QUICKMATHS
 
 #include <nds.h>
+#include <math.h>
 #include "sizes.h"
 
 // ==================================================================
-// very important structs
+// general stuff
 // ==================================================================
 
 enum operators
@@ -31,40 +32,18 @@ enum operators
 
 };
 
-struct fraction
-{
-    // pretty straightforward
-    // ( -1/2 )
-    u64 numerator;
-    u64 denominator;
-    int8 sign;
-};
-
-struct fraction_exponent
-{
-    // a fraction to the power of another fraction
-    // ( (5/3)^(3/2) )
-    struct fraction base;
-    struct fraction exponent;
-};
-
-// ==================================================================
-// exponent math stuff
-// ==================================================================
-
-struct fraction_exponent real_exp_simplify(struct fraction_exponent a);
-
-
-// ==================================================================
-// irrational stuff
-// ==================================================================
-
-struct fraction root(struct fraction a, u64 index);
-
-
 // ==================================================================
 // basic fraction stuff
 // ==================================================================
+struct fraction
+{
+    // pretty straightforward
+    u64 numerator;
+    u64 denominator;
+    int8 sign;
+    int64 sci_notation;
+};
+
 struct fraction fraction_init(u64 num, u64 den, int8 sign);
 struct fraction fraction_reciprocal(struct fraction a);
 struct fraction fraction_simplify(struct fraction a);
@@ -77,6 +56,9 @@ struct fraction fraction_mul(struct fraction a, struct fraction b);
 struct fraction fraction_div(struct fraction a, struct fraction b);
 struct fraction fraction_basic_power(struct fraction a, struct fraction bi);
 
+bool fraction_is_error(struct fraction a);
+struct fraction fraction_init_error();
+struct fraction double_to_frac(double a);
 
 // ==================================================================
 // unsimple stuff
@@ -88,7 +70,7 @@ int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN],
 int8 unsimple_simplify(struct unsimple_exp* tree);
 int8 unsimple_simplify_node(struct node* n);
 
-int8 unsimple_combine_scalars(struct node* n);
+int8 unsimple_combine_scalars(struct unsimple_exp* tree);
 
 int8 unsimple_rewrite(struct node* n);
 int8 addition_rewrites(struct node* n);
@@ -96,8 +78,13 @@ int8 multiplication_rewrites(struct node* n);
 int8 division_rewrites(struct node* n);
 
 struct fraction unsimple_evaluate(struct unsimple_exp* tree);
+int8 unsimple_combine_scalars_node(struct node* n);
 struct fraction unsimple_eval_node(struct node* n);
 
+// ==================================================================
+// irrational stuff
+// ==================================================================
+struct fraction root(struct fraction a, u64 index);
 
 // ==================================================================
 // basic/general stuff

@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 				}
 
 				// char expression[] = "tan(5+3*2)^2-sin(sqrt(16)+4)+7/(1+3)^2";
-				// char expression[] = "(5+3*2)";
+				// char expression[] = "sin(sqrt(7+4)*sqrt(4+7))^2+cos(sqrt(7+4)*sqrt(4+7))^2";
 				
 				memset(mathstring, '\0', sizeof(mathstring));
 				memset(parsedstring, '\0', sizeof(parsedstring));
@@ -154,11 +154,12 @@ int main(int argc, char **argv)
 					calc_main_print("FUCK", &whereprint, 1);
 				}
 
-				//unsimple_simplify(&uexp);
-				result = unsimple_evaluate(&uexp);
+				unsimple_simplify(&uexp);
+				//result = unsimple_evaluate(&uexp);
+				result = uexp.root->number;
 
 				char weenres[200];
-				whereprint = 17;
+				whereprint = 19;
 
 				calc_main_print("                                                                ", &whereprint, 0);
 				calc_main_print("BEHOLD: ", &whereprint, 1);
@@ -167,20 +168,11 @@ int main(int argc, char **argv)
 				nice_fraction_print(result.numerator, result.denominator, result.sign, expression, weenres);
 
 				// reset the output to have the postorder of the expression
-				///postorder(&uexp, weenres);
-
-				// sprintf(weenres, "%d", uexp.root->left->op);
-
-				// weenres[0] = '\0';
-				// for (int x = 1; x <= atoi(parsedstring[0]); x++)
-				// {
-				// 	char peen[20];
-				// 	sprintf(peen, "%s|", parsedstring[x]);
-
-				// 	strcat(weenres, peen);
-				// }
-
-				//sprintf(weenres, "%s", mathstring[0]);
+				// postorder(&uexp, weenres);
+				
+				// sprintf(weenres, "root hash: %lld", uexp.root->hash);
+				// sprintf(weenres, "%d", uexp.root->right->left->op);
+				
 
 				// print whatever is in weenres
 				calc_main_print(weenres, &whereprint, 0);
