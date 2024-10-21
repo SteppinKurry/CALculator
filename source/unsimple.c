@@ -23,13 +23,11 @@ struct unsimple_exp unsimple_exp_init()
     // set all other nodes to be "empty"
     for (int x = 1; x < MAX_TREE_NODES; x++)
     {
-        //return_this.nodes[x] = node_init_op(NULL, NULL, NOOP);
         node_set_empty(&return_this.nodes[x]);
     }
 
     // sets the root of the tree to the address of the first node
     return_this.root = &return_this.nodes[0];
-    // return_this.num_nodes = 0;
 
     return return_this;
 
@@ -42,11 +40,10 @@ struct node* unsimple_add_node(struct node n, struct unsimple_exp* tree)
     // not necessarily link the new node to any other nodes, so make sure you 
     // do that manually before adding it to the tree.
 
-
     // find a place in the tree to put the node
     for (int x = 0; x < MAX_TREE_NODES; x++)
     {
-        // found an open spot, add the node and return it's address 
+        // found an open spot, add the node and return its address 
         // in the tree structure
         if (node_is_empty(tree->nodes[x])) 
         {
@@ -140,11 +137,19 @@ int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN],
 
 int8 unsimple_simplify(struct unsimple_exp* tree)
 {
+    // This function simplifies a mathematical expression 
+    // as much as possible. In cases where the answer is a 
+    // rational number, this usually is as close as you need 
+    // to get to the answer. For other cases, this will do 
+    // its damndest to get as close as possible to a simplified 
+    // representation. 
     
+    // does any operations that it knows will result in a rational 
+    // number
     unsimple_combine_scalars_node(tree->root);
 
     // rewrite/simplify parts of the expression using known 
-    // rules (x*1 = x, sin^2(x)+cos^2(x) = 1, etc.)
+    // rules ( sin^2(x)+cos^2(x) = 1, etc.)
     unsimple_rewrite(tree->root);
 
     unsimple_combine_scalars_node(tree->root);

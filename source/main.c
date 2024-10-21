@@ -65,6 +65,7 @@ int main(int argc, char **argv)
 
 	char expression[MAX_EXP_CHARS];
 	u8 expression_len = 0;
+	expression[0] = '\0';
 
 	char tap_toggle = 0;
 
@@ -93,7 +94,6 @@ int main(int argc, char **argv)
 		// if there was a touch input
 		if ((held & KEY_TOUCH) && tap_toggle == 1)
 		{
-
 			tap_toggle = 0;
 
 			// figure out which virtual button was touched
@@ -103,7 +103,6 @@ int main(int argc, char **argv)
 			// do the thing with the button
 			if (button == 14) // equal sign
 			{ 
-
 				if (result.denominator > 1 && expression_len == 0)
 				{
 					// if the last answer was a fraction, pressing equal again 
@@ -134,16 +133,27 @@ int main(int argc, char **argv)
 					continue;
 				}
 
+				// if the expression is empty for no reason, do nothing
+				else if (expression_len == 0) { continue; }
+
 				// char expression[] = "tan(5+3*2)^2-sin(sqrt(16)+4)+7/(1+3)^2";
+
+				// char expression[] = "sqrt(37*0)*sqrt(13-13)";
+				// char expression[] = "sqrt(37)*sqrt(37)";
+				// char expression[] = "sin(37)^2+cos(37)^2";
+				// char expression[] = "(sin(37)^2+cos(37)^2)*23";
+				// char expression[] = "sqrt(sin(37)^2+cos(37)^2)*sqrt(sin(37)^2+cos(37)^2)";
 				// char expression[] = "sin(sqrt(7+4)*sqrt(4+7))^2+cos(sqrt(7+4)*sqrt(4+7))^2";
 				
+				// reset the strings
 				memset(mathstring, '\0', sizeof(mathstring));
 				memset(parsedstring, '\0', sizeof(parsedstring));
 
-				// tokenize, parse, and evaluate the expression
+				// tokenize and parse the expression
 				tokenize(expression, mathstring);
 				parse(mathstring, parsedstring);
 
+				// generate an unsimplified expression variable
 				struct unsimple_exp uexp = unsimple_exp_init();
 				u8 error = construct_unsimple_from_parsedstring(parsedstring, &uexp);
 				

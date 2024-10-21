@@ -92,6 +92,25 @@ int8 sqrt_times_sqrt_rewrite(struct node* n)
     return 0;
 }
 
+int8 x_times_zero_rewrite(struct node* n)
+{
+    // 10-18-24
+    // Given a multiplication node, it will turn 
+    // x * 0 into 0 and put it into the given node
+
+    struct fraction frac_zero = fraction_init(0, 1, 1);
+
+    // make sure there is a zero on one of the sides
+    if ( !fractions_equal(n->left->number, frac_zero) && !fractions_equal(n->right->number, frac_zero) ) { return 1; }
+
+    // at this point, we know we have x * 0, so set this 
+    // node to be 0
+    node_recursive_delete(n);
+    *n = node_init_num(NULL, NULL, frac_zero);
+
+    return 0;
+}
+
 int8 multiplication_rewrites(struct node* n)
 {
 
@@ -99,6 +118,7 @@ int8 multiplication_rewrites(struct node* n)
 
     // sqrt(x) * sqrt(x) = x
     sqrt_times_sqrt_rewrite(n);
+    x_times_zero_rewrite(n);
 
     return 0;
 }
@@ -106,6 +126,18 @@ int8 multiplication_rewrites(struct node* n)
 int8 division_rewrites(struct node* n)
 {
     // nothing here yet
+
+    return 0;
+}
+
+int8 trig_rewrites(struct node* n)
+{
+    // rewrites related to trigonometry functions
+
+
+
+    return 0;
+
 }
 
 int8 unsimple_rewrite(struct node* n)
@@ -117,6 +149,7 @@ int8 unsimple_rewrite(struct node* n)
     // that can be simplified.
 
     // no further simplification
+    if (n == NULL) { return -1; }
     if (n->type == NUM) { return 0; }
     if (n->type == WAT) { return -1; }
 
@@ -131,7 +164,8 @@ int8 unsimple_rewrite(struct node* n)
     // some specific rules
     addition_rewrites(n);
     multiplication_rewrites(n);
-    // division_rewrites(n);
+    division_rewrites(n);
+    trig_rewrites(n);
 
 
     return 0;

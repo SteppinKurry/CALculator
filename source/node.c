@@ -52,6 +52,9 @@ bool node_is_empty(struct node n)
     // if it isn't a noop, it isn't empty
     if (n.op != NOOP) { return false; }
 
+    // if it has a hash value, it isn't empty ig
+    if (n.hash != 0) { return false; }
+
 
     // otherwise, it's empty
     return true;
