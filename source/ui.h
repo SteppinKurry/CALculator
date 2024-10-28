@@ -35,9 +35,11 @@ void calc_console_init();
 void calc_dummy_print();
 void fill_ui_layout(struct ui_screen* ui, u8 layout[][2]);
 void set_bottom_ui(struct ui_screen* new_bg);
-void nice_fraction_print(u64 num, u64 den, int8 sign, char* expression, char* str);
+void nice_fraction_print(u64 whole, u64 num, u64 den, int8 sign, char* expression, char* str);
+void annoyed_print(char* str);
 
 struct ui_screen ui_init_main_screen();
 struct ui_screen ui_init_irr_screen();
+struct ui_screen ui_init_func_screen();
 
 #endif

@@ -7,7 +7,8 @@
 #include "calmath.h"
 
 struct fraction (*math_function_list[]) (struct fraction, struct fraction) = 
-        {fraction_none, fraction_add, fraction_sub, fraction_mul, fraction_div, fraction_basic_power};
+        {fraction_none, fraction_add, fraction_sub, fraction_mul, fraction_div, fraction_basic_power, fraction_none, 
+         fraction_none, fraction_none, fraction_none, fraction_none, fraction_none, fraction_none, psqrt};
 
 
 struct unsimple_exp unsimple_exp_init()
@@ -17,11 +18,9 @@ struct unsimple_exp unsimple_exp_init()
 
     struct unsimple_exp return_this;
 
-    // set root node to zero
-    return_this.nodes[0] = node_init_num(NULL, NULL, fraction_init(0, 1, 1));
 
     // set all other nodes to be "empty"
-    for (int x = 1; x < MAX_TREE_NODES; x++)
+    for (int x = 0; x < MAX_TREE_NODES; x++)
     {
         node_set_empty(&return_this.nodes[x]);
     }
@@ -58,6 +57,29 @@ struct node* unsimple_add_node(struct node n, struct unsimple_exp* tree)
 
     // the tree is probably full already or something else horrible happened
     return NULL;
+}
+
+int8 unsimple_copy(struct unsimple_exp* source, struct unsimple_exp* dest)
+{
+
+    node_recursive_delete(dest->root);
+    // copy all of the nodes from the source to the destination
+    for (int x = 0; x < MAX_TREE_NODES; x++)
+    {
+        // copy each node individually
+        node_copy(&source->nodes[x], &dest->nodes[x]);
+        
+        // if we're on the root node for the source tree, we're also 
+        // on the root node for the destination tree (sort of), so 
+        // update it now
+        if (subtrees_equal(&source->nodes[x], source->root))
+        {            
+            dest->root = &dest->nodes[x];
+        }
+    }
+
+
+    return 0;
 
 }
 
@@ -66,6 +88,8 @@ int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN],
     // 10-10-24 (updated 10-12-24 for the multi-character operators)
     // Builds an abstract syntax tree (AST) from a postfix 
     // (parsedstring) expression
+
+    node_recursive_delete(tree->root);
 
     struct node* stack[MATHSTR_LEN];
     u8 top_stack = 0;
@@ -102,7 +126,6 @@ int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN],
                 // build the tree
                 new_node = node_init_op(a, b, str_to_op(parsed[x]));
 
-
             }
 
             // put the result at the top of the stack
@@ -113,9 +136,24 @@ int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN],
         else
         {
             // if not an operator, just add to the stack
+            struct node new;
+            
+            if (is_user_var(parsed[x]))
+            {
+                // makes a node from a user-defined variable
+                new = node_init_var(user_var_to_int(parsed[x]));
+            }
+            else if (is_math_const(parsed[x]))
+            {
+                // makes a node from a constant (pi, e, etc.)
+                new = node_init_const(user_var_to_int(parsed[x]));
+            }
+            else
+            {
+                // makes a node from the given numbers
+                new = node_init_num(NULL, NULL, fraction_init(str_to_u64(parsed[x]), 1, 1));
+            }
 
-            // makes a node from the numbers in the stack
-            struct node new = node_init_num(NULL, NULL, fraction_init(str_to_u64(parsed[x]), 1, 1));
             stack[top_stack] = unsimple_add_node(new, tree);
 
             // error
@@ -126,7 +164,7 @@ int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN],
 
     }
     
-
+                
     // it worked?
     tree->root = stack[top_stack-1];
     node_gen_hash(tree->root);
@@ -211,6 +249,47 @@ int8 unsimple_combine_scalars_node(struct node* n)
     // we can't easily combine that, so do nothing with it
     return -1;
 
+
+}
+
+int8 unsimple_sub_vars_node(struct node* n, struct unsimple_exp* values)
+{
+    // 10-21-24
+    // Substitutes values into variables in expressions
+
+    // return if the given node is NULL or the wrong type
+    if (n == NULL) { return -1; }
+    if (n->type == WAT) { return -1; }
+    if (n->type == NUM) { return 1; }
+
+    // could have either an op node or a var node
+    unsimple_sub_vars_node(n->left, values);
+    unsimple_sub_vars_node(n->right, values);
+
+    if (n->type != VAR) { return 1; }
+
+    // we must have a var node if we made it here, so change it 
+    // to a num node and substitute based upon the given array 
+    // of variable values
+
+    // for now, we hope to God no actual irrational numbers are used 
+    // in a variable
+    //struct fraction var_num = unsimple_evaluate(&values[n->var_id]);
+
+    // turn the current node into a regular number
+    //*n = node_init_num(NULL, NULL, var_num);
+
+    node_copy(values[n->var_id].root, n);
+
+    return 0;
+}
+
+int8 unsimple_sub_vars(struct unsimple_exp* tree, struct unsimple_exp* values)
+{
+
+    unsimple_sub_vars_node(tree->root, values);
+
+    return 0;
 
 }
 

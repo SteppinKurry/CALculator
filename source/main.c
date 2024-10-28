@@ -12,7 +12,6 @@
 #include "sizes.h"
 #include "node.h"
 
-
 int8 button_num_into_str(u8 b, char* expression, u8* expression_len)
 {
 	// 10-12-24
@@ -27,7 +26,9 @@ int8 button_num_into_str(u8 b, char* expression, u8* expression_len)
 	char buttons[][6] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
 				   		 "+", "-", "*", "/", "=", "c", "(", ")", "^", 
 						 "pi", "sin(", "sin(", "e", "cos(", "cos(", "E", "tan(", "tan(", 
-						 "sqrt(" };
+						 "sqrt(", 
+						 "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+						 "(A)", "(B)", "=", "(C)", "(D)", "(ans)", "(ans)"};
 
 	// if the final expression will be too long, reset it
 	if (*expression_len + strlen(buttons[b])>= MAX_EXP_CHARS) { *expression_len = 0; expression[0] = '\0'; }
@@ -51,6 +52,7 @@ int main(int argc, char **argv)
 	// set variables for all of the UI's screens
 	struct ui_screen ui_main = ui_init_main_screen();
 	struct ui_screen ui_irrational = ui_init_irr_screen();
+	struct ui_screen ui_functions = ui_init_func_screen();
 
 	// pointer to the currently used screen
 	struct ui_screen* current_ui = &ui_main;
@@ -69,6 +71,32 @@ int main(int argc, char **argv)
 
 	char tap_toggle = 0;
 
+	// initialize math stuff
+
+	// this array stores the values of user-defined variables in 
+	// the program
+	struct unsimple_exp var_values[28];
+
+	for (int x = 0; x < 28; x++)
+	{
+		var_values[x] = unsimple_exp_init();
+	}
+
+	
+	char user_var_a[] = "13";
+	char mathstring1[MATHSTR_LEN][MAX_NUM_LEN];
+	char parsedstring1[MATHSTR_LEN][MAX_NUM_LEN];
+
+	char user_var_ans[] = "0";
+
+	tokenize(user_var_a, mathstring1);
+	parse(mathstring1, parsedstring1);
+	construct_unsimple_from_parsedstring(parsedstring1, &var_values[1]);
+
+	tokenize(user_var_ans, mathstring1);
+	parse(mathstring1, parsedstring1);
+	construct_unsimple_from_parsedstring(parsedstring1, &var_values[27]);
+
 	// mathstring is for the tokenized expression
 	char mathstring[MATHSTR_LEN][MAX_NUM_LEN];
 
@@ -83,6 +111,8 @@ int main(int argc, char **argv)
 	// main loop
 	while(1)
    	{	
+		//NF_SetTile(0, 25, 25, 0);  // Set pixel at (x, y) with the desired color
+
 		// get input from buttons and touch screen
 		scanKeys();
 		touchRead(&touch_screen);
@@ -114,10 +144,10 @@ int main(int argc, char **argv)
 					double ans = (double) result.numerator / result.denominator;
 
 					if (result.sign == 1)
-						sprintf(weenres, "%lld/%lld = %lf", result.numerator, result.denominator, ans);
+						sprintf(weenres, "%llu/%llu = %lf", result.numerator, result.denominator, ans);
 
 					else
-						sprintf(weenres, "%lld/%lld = -%lf", result.numerator, result.denominator, ans);
+						sprintf(weenres, "%llu/%llu = -%lf", result.numerator, result.denominator, ans);
 
 					calc_main_print("                                                                ", &whereprint, 0);
 					calc_main_print(weenres, &whereprint, 0);
@@ -127,24 +157,28 @@ int main(int argc, char **argv)
 					expression[0] = '\0';
 					expression_len = 0;
 
-					whereprint = 15;
 					calc_main_print("                                                ", &whereprint, 0);
 					
 					continue;
 				}
 
 				// if the expression is empty for no reason, do nothing
-				else if (expression_len == 0) { continue; }
+				// else if (strlen(expression) == 0) { continue; }
 
 				// char expression[] = "tan(5+3*2)^2-sin(sqrt(16)+4)+7/(1+3)^2";
 
-				// char expression[] = "sqrt(37*0)*sqrt(13-13)";
+				// char expression[] = "cos(4-7)^2+sin(4-7)^2";
 				// char expression[] = "sqrt(37)*sqrt(37)";
 				// char expression[] = "sin(37)^2+cos(37)^2";
 				// char expression[] = "(sin(37)^2+cos(37)^2)*23";
 				// char expression[] = "sqrt(sin(37)^2+cos(37)^2)*sqrt(sin(37)^2+cos(37)^2)";
 				// char expression[] = "sin(sqrt(7+4)*sqrt(4+7))^2+cos(sqrt(7+4)*sqrt(4+7))^2";
-				
+
+				// YOU'RE TRYING TO FIGURE OUT WHY SHIT OVERFLOWS SO MUCH
+				// NOTE THAT %llu IS HOW YOU'RE ****sUPPPOERSED*** TO PRINT 
+				// A U64 >:(((((((((((((
+				// char expression[] = "sqrt(32)";
+
 				// reset the strings
 				memset(mathstring, '\0', sizeof(mathstring));
 				memset(parsedstring, '\0', sizeof(parsedstring));
@@ -156,7 +190,7 @@ int main(int argc, char **argv)
 				// generate an unsimplified expression variable
 				struct unsimple_exp uexp = unsimple_exp_init();
 				u8 error = construct_unsimple_from_parsedstring(parsedstring, &uexp);
-				
+
 				// ast error (scary)
 				if (error == 1)
 				{
@@ -164,25 +198,24 @@ int main(int argc, char **argv)
 					calc_main_print("FUCK", &whereprint, 1);
 				}
 
+				unsimple_sub_vars(&uexp, var_values);
 				unsimple_simplify(&uexp);
-				//result = unsimple_evaluate(&uexp);
-				result = uexp.root->number;
+				result = unsimple_evaluate(&uexp);
 
 				char weenres[200];
-				whereprint = 19;
+				whereprint = 18;
 
 				calc_main_print("                                                                ", &whereprint, 0);
 				calc_main_print("BEHOLD: ", &whereprint, 1);
 
+				// result = fraction_init_whole(3, 1, 2, 1);
+
 				// makes the result look nicer when it's printed
-				nice_fraction_print(result.numerator, result.denominator, result.sign, expression, weenres);
+				nice_fraction_print(result.whole, result.numerator, 
+									result.denominator, result.sign, expression, weenres);
 
 				// reset the output to have the postorder of the expression
-				// postorder(&uexp, weenres);
-				
-				// sprintf(weenres, "root hash: %lld", uexp.root->hash);
-				// sprintf(weenres, "%d", uexp.root->right->left->op);
-				
+				// postorder(&uexp, weenres);	
 
 				// print whatever is in weenres
 				calc_main_print(weenres, &whereprint, 0);
@@ -193,6 +226,9 @@ int main(int argc, char **argv)
 
 				whereprint = 15;
 				calc_main_print("                                                ", &whereprint, 0);
+
+				// move the previous answer into its spot in the user variables
+				unsimple_copy(&uexp, &var_values[27]);
 			}
 
 			// clear button
@@ -217,24 +253,64 @@ int main(int argc, char **argv)
 			else
 			{
 				//add_char_to_expression(expression, button_num_to_char(button), &expression_len);
+				
+				u8 old_len = expression_len;
+				char new_word[8] = "";
+
 				button_num_into_str(button, expression, &expression_len);
+				if (old_len == 0)
+				{
+					for (int x = 0; x < expression_len; x++)
+					{
+						new_word[x] = expression[x];
+					}
+
+					new_word[expression_len] = '\0';
+
+					if (is_operator(new_word))
+					{
+						expression[0] = '\0';
+						strcat(expression, "ans");
+						expression_len += 3;
+						expression[expression_len] = '\0';
+						strcat(expression, new_word);
+					}
+				}
+
 				calc_main_print(expression, &whereprint, 0);
+
 			}
 
 		}
 
-		// change to the irrational button set
+		// change the button set
 		if (keys & KEY_UP)
 		{
-			set_bottom_ui(&ui_irrational);
-			current_ui = &ui_irrational;
+			if (current_ui == &ui_main)
+			{
+				set_bottom_ui(&ui_irrational);
+				current_ui = &ui_irrational;
+			}
+			else if (current_ui == &ui_functions)
+			{
+				set_bottom_ui(&ui_main);
+				current_ui = &ui_main;
+			}
 		}
 		
-		// change to the regular button set
+		// change the button set
 		if (keys & KEY_DOWN)
 		{
-			set_bottom_ui(&ui_main);
-			current_ui = &ui_main;
+			if (current_ui == &ui_irrational)
+			{
+				set_bottom_ui(&ui_main);
+				current_ui = &ui_main;
+			}
+			else if (current_ui == &ui_main)
+			{
+				set_bottom_ui(&ui_functions);
+				current_ui = &ui_functions;
+			}
 		}
 
 		// quit program

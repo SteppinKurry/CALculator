@@ -16,6 +16,7 @@ struct node node_init_num(struct node* left, struct node* right, struct fraction
     a.right = right;
     a.number = number;
     a.op = NOOP;
+    a.var_id = 0;
 
     a.hash = hash_frac(number);
 
@@ -31,14 +32,52 @@ struct node node_init_op(struct node* left, struct node* right, u8 op)
     a.type = OP;
     a.left = left;
     a.right = right;
-    a.number = fraction_init(0, 1, 1);
+    a.number = fraction_init_error();
     a.op = op;
+    a.var_id = 0;
 
     a.hash = 0;
 
     return a;
 
 }
+
+struct node node_init_var(u8 var_id)
+{
+
+    struct node a;
+
+    a.type = VAR;
+    a.left = NULL;
+    a.right = NULL;
+    a.number = fraction_init_error();
+    a.op = NOOP;
+    a.var_id = var_id;
+
+    a.hash = 0;
+
+    return a;
+
+}
+
+struct node node_init_const(u8 var_id)
+{
+
+    struct node a;
+
+    a.type = MCONS;
+    a.left = NULL;
+    a.right = NULL;
+    a.number = fraction_init_error();
+    a.op = NOOP;
+    a.var_id = var_id;
+
+    a.hash = 0;
+
+    return a;
+
+}
+
 
 bool node_is_empty(struct node n)
 {
@@ -47,7 +86,7 @@ bool node_is_empty(struct node n)
     // has an operator of no op (noop)
 
     // if it's a number, it isn't empty
-    if (n.type == NUM) { return false; }
+    if (n.type == NUM || n.type == VAR || n.type == MCONS) { return false; }
 
     // if it isn't a noop, it isn't empty
     if (n.op != NOOP) { return false; }
@@ -78,6 +117,8 @@ void node_copy(struct node* source, struct node* dest)
     dest->right  =  source->right;
     dest->number =  source->number;
     dest->op     =  source->op;
+    dest->var_id =  source->var_id;
+    dest->hash   =  source->hash;
 }
 
 u64 hash_frac(struct fraction num)
@@ -89,7 +130,7 @@ u64 hash_frac(struct fraction num)
 
     fraction_simplify(num);
 
-    sprintf(ween, "%lld/%lld", num.numerator, num.denominator);
+    sprintf(ween, "%d%lld/%lld", num.sign, num.numerator, num.denominator);
     MurmurHash3_x86_32(ween, strlen(ween), HASH_SEED, &peen);
 
     return peen;
@@ -137,7 +178,16 @@ int8 node_gen_hash(struct node* n)
     if (right == 0) { right_hash = n->right->hash; }
 
     // generate and store the hash for the node
-    n->hash = hash_op(n->op) ^ (left_hash * 31) ^ (right_hash * 37);
+    if (is_commutative(n->op)) 
+    {
+        // Commutative case: order of left and right doesn't matter
+        n->hash = hash_op(n->op) ^ (left_hash + right_hash);
+    } 
+    else 
+    {
+        // Non-commutative case: order matters, use different multipliers
+        n->hash = hash_op(n->op) ^ (left_hash * 31) ^ (right_hash * 37);
+    }
 
     return 0;
 
@@ -185,6 +235,7 @@ void postorder_node(struct node* n, char* str, u8* str_ind)
 
     if (n->type == OP) { str[*str_ind] = n->op + '0'; }
     if (n->type == NUM) { str[*str_ind] = n->number.numerator + '0'; } 
+    if (n->type == VAR) { str[*str_ind] = n->var_id + '0'; } 
 
     *str_ind += 1;
 }

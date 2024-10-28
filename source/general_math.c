@@ -61,7 +61,7 @@ u64 gcd(u64 a, u64 b)
     // right now
 
     u64 r;
-    L0: r = mod64(a, b);
+    L0: r = a % b;
     if (r == 0) goto L1;
     a = b;
     b = r;
@@ -93,4 +93,11 @@ bool bit_check(u64 number, u64 n)
     // returns the bit of number at position n
 
     return (number >> n) & (u64)1;
+}
+
+bool is_commutative(enum operators op)
+{
+    if (op == ADD || op == MUL) { return true; }
+
+    return false;
 }

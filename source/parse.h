@@ -23,6 +23,10 @@ struct fraction evaluate_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN]);
 bool is_math_func(enum operators op);
 enum operators str_to_op(char* c);
 
+bool is_user_var(char* str);
+u8 user_var_to_int(char* str);
+bool is_math_const(char* str);
+
 //struct bigreal basic_do_math(struct tokenized wang);
 
 #endif

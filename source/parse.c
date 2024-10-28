@@ -4,7 +4,7 @@
 
 int num_ops = 12;
 char valid_ops[][5] = { "+", "-", "*", "/", "(", ")", "^", 
-	                    "sin", "cos", "E", "tan", "sqrt" };
+	                    "sin", "cos", "E", "tan", "sqrt"};
 
 enum operators str_to_op(char* c)
 {
@@ -22,6 +22,46 @@ enum operators str_to_op(char* c)
     if (!strcmp(c, "sqrt")) return SQRT;
 
     return NOOP;
+}
+
+bool is_user_var(char* str)
+{
+    // 10-21-24
+    // Returns true if the given string is a user-defined variable 
+    // (A, B, etc.) or if the given string is a constant that could 
+    // be treated like a variable (pi, e, etc.)
+    u8 ord = user_var_to_int(str);
+
+    if (ord > 0 && ord < 26) { return true; }
+
+    if (!strcmp(str, "ans")) { return true; }
+
+    return false;
+}
+
+bool is_math_const(char* str)
+{
+    char math_consts[][4] = {"pi", "e"};
+    u8 num_consts = 2;
+
+    for (int x = 0; x < num_consts; x++)
+    {
+        if (!strcmp(str, math_consts[x])) { return true; }
+    }
+
+    return false;
+}
+
+u8 user_var_to_int(char* str)
+{
+    // 10-21-24
+    // Returns an integer representing the given user-variable string
+
+    if (!strcmp(str, "ans")) { return 27; }
+    if (!strcmp(str, "pi")) { return 37; }
+    if (!strcmp(str, "e")) { return 38; }
+
+    return str[0] - 64;
 }
 
 bool is_math_func(enum operators op)
@@ -141,7 +181,7 @@ u8 tokenize(char* expression, char mathstring[MATHSTR_LEN][MAX_NUM_LEN])
             }
         }
 
-        if (making_op && is_operator(current_op))
+        if (making_op && (is_operator(current_op) || is_user_var(current_op) || is_math_const(current_op)) )
         {
 
             // copy over the current number and the current operator
@@ -237,14 +277,13 @@ u8 parse(char mathstring[MATHSTR_LEN][MAX_NUM_LEN], char parsed[MATHSTR_LEN][MAX
     for (int x = 1; x < atoi(mathstring[0]) + 1; x++)
     {
 
-        // if it's a number, add it to the output
-        if (is_valid_number(mathstring[x])) 
+        // if it's a number, user-defined variable, or mathematical constant add it to the output
+        if (is_valid_number(mathstring[x]) || is_user_var(mathstring[x]) || is_math_const(mathstring[x])) 
         { 
             strcpy(parsed[parsed_ind], mathstring[x]); 
             parsed_ind += 1;
 
         }
-
         // if it's an operator and not a parenthesis
         else if ( is_operator(mathstring[x]) && strcmp(mathstring[x], "(") && strcmp(mathstring[x], ")") )
         {

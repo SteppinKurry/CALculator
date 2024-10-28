@@ -9,13 +9,14 @@
 struct node
 {
 
-    enum {WAT, OP, NUM} type;
+    enum {WAT, OP, NUM, VAR, MCONS} type;
 
     struct node* left;
     struct node* right;
 
     struct fraction number;
     enum operators op;
+    u8 var_id;
 
     u64 hash;
 
@@ -28,12 +29,14 @@ struct unsimple_exp
 
     struct node nodes[MAX_TREE_NODES];
     struct node* root;
-    //int8 num_nodes;
 
 };
 
 struct node node_init_op(struct node* left, struct node* right, u8 operator);
 struct node node_init_num(struct node* left, struct node* right, struct fraction number);
+struct node node_init_var(u8 var_id);
+struct node node_init_const(u8 var_id);
+
 bool node_is_empty(struct node n);
 void node_set_empty(struct node* n);
 void node_copy(struct node* source, struct node* dest);

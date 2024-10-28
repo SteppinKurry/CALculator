@@ -130,10 +130,157 @@ int8 division_rewrites(struct node* n)
     return 0;
 }
 
+int8 sin_rewrites(struct node* n)
+{
+    // 10-21-24
+    // Any rewrites with just sin probably appear here
+    if (n->type != OP) { return -1; }
+    if (n->op != SIN) { return 1; }
+
+    // sin(pi) = 0
+    if (n->left->type == MCONS)
+    {
+        if (n->left->var_id == 37) // the thing on the left is pi, replace
+        {
+            node_recursive_delete(n);
+
+            *n = node_init_num(NULL, NULL, fraction_init(0, 1, 1));
+            return 0;
+        }
+    }
+
+    // sin(pi/something)
+    if (n->left->type != OP) { return 1; }
+    
+    // make sure there's a division
+    if (n->left->op != DIV) { return 1; }
+    
+    // make sure pi is on top of it
+    if (n->left->left->type != MCONS) { return 1; }
+    if (n->left->left->var_id != 37) { return 1; }
+
+    // definitely have pi over something at this point
+    // make sure that the "something" is a number
+    if (n->left->right->type == OP) { return 1; }
+
+    // sin(pi/6) = 1/2
+    if (fractions_equal(n->left->right->number, fraction_init(6, 1, 1)))
+    {
+        node_recursive_delete(n);
+        *n = node_init_num(NULL, NULL, fraction_init(1, 2, 1));
+        return 0;
+    }
+
+    // sin(pi/4) = sqrt(2)/2
+    if (fractions_equal(n->left->right->number, fraction_init(4, 1, 1)))
+    {
+        *n = node_init_op(n->left, n->right, DIV);
+        *n->left = node_init_op(n->left->left, NULL, SQRT);
+        *n->left->left = node_init_num(NULL, NULL, fraction_init(2, 1, 1));
+        *n->right = node_init_num(NULL, NULL, fraction_init(2, 1, 1));
+        return 0;
+    }
+
+    // sin(pi/3) = sqrt(3)/2
+    if (fractions_equal(n->left->right->number, fraction_init(3, 1, 1)))
+    {
+        *n = node_init_op(n->left, n->right, DIV);
+        *n->left = node_init_op(n->left->left, NULL, SQRT);
+        *n->left->left = node_init_num(NULL, NULL, fraction_init(3, 1, 1));
+        *n->right = node_init_num(NULL, NULL, fraction_init(2, 1, 1));
+        return 0;
+    }
+
+    // sin(pi/2) = 1
+    if (fractions_equal(n->left->right->number, fraction_init(2, 1, 1)))
+    {
+        node_recursive_delete(n);
+        *n = node_init_num(NULL, NULL, fraction_init(1, 1, 1));
+        return 0;
+    }
+
+    return 1;
+
+}
+
+int8 cos_rewrites(struct node* n)
+{
+    // 10-21-24
+    // Any rewrites with just cos probably appear here
+    if (n->type != OP) { return -1; }
+    if (n->op != COS) { return 1; }
+
+    // cos(pi) = -1
+    if (n->left->type == MCONS)
+    {
+        if (n->left->var_id == 37) // the thing on the left is pi, replace
+        {
+            node_recursive_delete(n);
+
+            *n = node_init_num(NULL, NULL, fraction_init(1, 1, -1));
+            return 0;
+        }
+    }
+
+    // cos(pi/something)
+    if (n->left->type != OP) { return 1; }
+    
+    // make sure there's a division
+    if (n->left->op != DIV) { return 1; }
+    
+    // make sure pi is on top of it
+    if (n->left->left->type != MCONS) { return 1; }
+    if (n->left->left->var_id != 37) { return 1; }
+
+    // definitely have pi over something at this point
+    // make sure that the "something" is a number
+    if (n->left->right->type == OP) { return 1; }
+
+    // cos(pi/6) = sqrt(3)/2
+    if (fractions_equal(n->left->right->number, fraction_init(6, 1, 1)))
+    {
+        *n = node_init_op(n->left, n->right, DIV);
+        *n->left = node_init_op(n->left->left, NULL, SQRT);
+        *n->left->left = node_init_num(NULL, NULL, fraction_init(3, 1, 1));
+        *n->right = node_init_num(NULL, NULL, fraction_init(2, 1, 1));
+        return 0;
+    }
+
+    // cos(pi/4) = sqrt(2)/2
+    if (fractions_equal(n->left->right->number, fraction_init(4, 1, 1)))
+    {
+        *n = node_init_op(n->left, n->right, DIV);
+        *n->left = node_init_op(n->left->left, NULL, SQRT);
+        *n->left->left = node_init_num(NULL, NULL, fraction_init(2, 1, 1));
+        *n->right = node_init_num(NULL, NULL, fraction_init(2, 1, 1));
+        return 0;
+    }
+
+    // cos(pi/3) = 1/2
+    if (fractions_equal(n->left->right->number, fraction_init(3, 1, 1)))
+    {
+        node_recursive_delete(n);
+        *n = node_init_num(NULL, NULL, fraction_init(1, 2, 1));
+        return 0;
+    }
+
+    // cos(pi/2) = 0
+    if (fractions_equal(n->left->right->number, fraction_init(2, 1, 1)))
+    {
+        node_recursive_delete(n);
+        *n = node_init_num(NULL, NULL, fraction_init(0, 1, 1));
+        return 0;
+    }
+
+    return 1;
+
+}
+
 int8 trig_rewrites(struct node* n)
 {
     // rewrites related to trigonometry functions
-
+    sin_rewrites(n);
+    cos_rewrites(n);
 
 
     return 0;
@@ -152,6 +299,8 @@ int8 unsimple_rewrite(struct node* n)
     if (n == NULL) { return -1; }
     if (n->type == NUM) { return 0; }
     if (n->type == WAT) { return -1; }
+    if (n->type == VAR) { return 0; }
+    if (n->type == MCONS) { return 0; }    
 
     unsimple_rewrite(n->left);
     unsimple_rewrite(n->right);
@@ -159,7 +308,8 @@ int8 unsimple_rewrite(struct node* n)
     // current node must be an operator
     // if we're at a node and there're no children, 
     // that's some weird shit (probably a syntax error)
-    if (n->left == NULL || n->right == NULL) { return -1; }
+    if (n->left == NULL && n->right == NULL) { return -1; }
+
 
     // some specific rules
     addition_rewrites(n);

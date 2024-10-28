@@ -66,6 +66,32 @@ struct ui_screen ui_init_irr_screen()
 	return ui;
 }
 
+struct ui_screen ui_init_func_screen()
+{
+	// returns a ui_screen with everything setup for the 
+	// irrational button screen
+	struct ui_screen ui;
+
+	ui.num_buttons = 7;
+	ui.button_size = 40;
+	ui.butt_offset = 45;
+	sprintf(ui.bg_name, "%s", "./bg/buttons-functions");
+	NF_LoadTiledBg(ui.bg_name, ui.bg_name, 256, 256);
+
+	// the x and y coordinates of the top left corner of each button on the bottom screen
+	u8 button_layout[][2] = 
+	{
+
+		{2, 51},  {51, 51},		{210, 2},
+		{2, 98},  {51, 98},
+		{2, 145}, {42, 145}
+
+	};
+
+	fill_ui_layout(&ui, button_layout);
+	return ui;
+}
+
 void fill_ui_layout(struct ui_screen* ui, u8 layout[][2])
 {
 	for (int x = 0; x < ui->num_buttons; x++)
@@ -94,6 +120,7 @@ void ui_init()
 	NF_SetRootFolder("NITROFS");
 	
 	calc_console_init();
+
 	//debug_console_init();
 
 }
@@ -139,24 +166,46 @@ void calc_main_print(char* print_this, u8* line, char newline)
 	}
 }
 
-void nice_fraction_print(u64 num, u64 den, int8 sign, char* expression, char* str)
+void annoyed_print(char* str)
 {
+	u8 peen = 10;
+	calc_main_print(str, &peen, 0);
+}
 
-	// if the denominator is one, don't bother printing it
-	if (den == 1)
-	{
+void nice_fraction_print(u64 whole, u64 num, u64 den, int8 sign, char* expression, char* str)
+{
+	char temp[MAX_EXP_CHARS];
+	str[0] = '\0';
 
-		if (sign == 1)
-			sprintf(str, "%s = %lld", expression, num);
+	// original expression
+	sprintf(temp, "%s = ", expression);
+	strcat(str, temp);
 
-		else
-			sprintf(str, "%s = -%lld", expression, num);
+	// sign
+	if (sign == -1) { strcat(str, "-"); }
 
-		return;
+	// whole number
+	if (whole != 0) 
+	{ 
+		sprintf(temp, "%llu", whole);
+		strcat(str, temp);
+
+		// + or - the fractional part
+		if (sign == -1) { strcat(str, "-"); }
+		else { strcat(str, "+"); }
+
 	}
 
-	if (sign == 1) { sprintf(str, "%s = %lld/%lld", expression, num, den); }
-	else 		   { sprintf(str, "%s = -%lld/%lld", expression, num, den); }
+	// numerator
+	sprintf(temp, "%llu", num);
+	strcat(str, temp);
+
+	// denominator
+	if (den != 1)
+	{
+		sprintf(temp, "/%llu", den);
+		strcat(str, temp);
+	}
 
 	return;
 
