@@ -9,30 +9,51 @@ In addition to the above, this has been a stupendous opportunity for me to dive 
 Anyway, if you have any degree of interest in this project, feel free to reach out! I'm still a rookie when it comes to writing code for the DS and doing math on a computer, and I would be more than happy to learn more about the subject.
 
 To do list
+
 o: not done
+
 x: currently usable, mostly done implementation
+
 /: comepletely finished
 
+
 things that need to be done
+
 - UI improvements
+
   o moveable cursor
-  o deleting things from the current expression 
+
+  o deleting things from the current expression
+
   o printing an unsimple_exp
+
   x using ans in calculations
 
+
 - numbers
+
   o scientific notation
 
+
 - unsimple_exp
+
   o further simplifications
+
   x hashing/determining when two trees are equal
 
 
 - features/functions
+
   o graphing
+
   x variables in functions
+
   x matrices
+
   x variables in general
+
   o stats functions
+
   o root algorithm
+  
   0 trig functions
