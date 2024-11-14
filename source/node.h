@@ -25,7 +25,7 @@ struct node
 struct unsimple_exp
 {
     // an expression that includes numbers in symbolic notation
-    // (something like sqrt(2)*sqrt(2) )
+    // (something like sqrt(2)*sqrt(9) )
 
     struct node nodes[MAX_TREE_NODES];
     struct node* root;
@@ -46,6 +46,7 @@ u64 hash_frac(struct fraction num);
 u64 hash_op(u16 op);
 bool subtrees_equal(struct node* a, struct node* b);
 int8 node_recursive_delete(struct node* n);
+u64 node_count(struct node* n);
 
 void postorder(struct unsimple_exp* n, char* str);
 void postorder_node(struct node* n, char* str, u8* str_ind);

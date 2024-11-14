@@ -317,6 +317,8 @@ int8 unsimple_rewrite(struct node* n)
     division_rewrites(n);
     trig_rewrites(n);
 
+    node_gen_hash(n);
+
 
     return 0;
 }

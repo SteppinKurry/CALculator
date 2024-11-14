@@ -36,6 +36,8 @@ bool is_user_var(char* str)
 
     if (!strcmp(str, "ans")) { return true; }
 
+    if (!strcmp(str, "x")) { return true; }
+
     return false;
 }
 

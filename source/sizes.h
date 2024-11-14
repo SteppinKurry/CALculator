@@ -9,5 +9,6 @@
 #define MAX_BG_NAME_CHARS 64
 #define HASH_SEED 12345678
 #define RAT_MATR_MAX 32
+#define GRAPH_MAX_POINTS 235
 
 #endif

@@ -109,29 +109,49 @@ void ui_init()
 	// initialize 2d modes for screens
 	NF_Set2D(0, 0);  // screen 0, mode 0
 	NF_Set2D(1, 0);  // screen 1, mode 0
+	swiWaitForVBlank();
+
+	// set the root folder for the filesystem
+	nitroFSInit(NULL);
+	NF_SetRootFolder("NITROFS");
+
+	NF_Set3D(0, 0);
+	NF_Set2D(1, 0);
 
     // initialize background tiling for both screens
 	NF_InitTiledBgBuffers();
 	NF_InitTiledBgSys(0);  // starts the bg tile engine on screen 0
 	NF_InitTiledBgSys(1);  // starts the bg tile engine on screen 1
 
-	// set the root folder for the filesystem
-	nitroFSInit(NULL);
-	NF_SetRootFolder("NITROFS");
-	
 	calc_console_init();
-
-	//debug_console_init();
 
 }
 
 void calc_console_init()
 {
-	// initialize text for the top screen
-	NF_InitTextSys(0);
-	NF_LoadTextFont("fnt/default", "wang", 256, 256, 0);
-	NF_CreateTextLayer(0, 0, 0, "wang");
-	NF_SetTextColor(0, 0, 3);
+
+	u8 text_layer = 1;
+	u8 bg_layer = 2;
+
+	// initialize sprite stuff
+	NF_InitSpriteBuffers();
+	NF_Init3dSpriteSys();
+
+	// load graph_point sprite stuff
+	NF_LoadSpriteGfx("./sprite/graph_point", 39, 8, 8);
+	NF_LoadSpriteGfx("./sprite/graph_axes", 41, 32, 32);
+	NF_LoadSpritePal("./sprite/graph_point", 40);
+
+	NF_Vram3dSpriteGfx(39, 39, true);
+	NF_Vram3dSpriteGfx(41, 41, true);
+	NF_Vram3dSpritePal(40, 4);
+
+	// generate the sprites used for graphing
+	for (int x = 0; x < 235; x++)
+	{
+		NF_Create3dSprite(x, 39, 4, x, 0);
+		NF_Show3dSprite(x, false);
+	}
 
 	// pretty sure this just loads the files into memory to use as backgrounds
 	NF_LoadTiledBg("bg/buttons-main", "bottom_screen", 256, 256);   
@@ -139,7 +159,14 @@ void calc_console_init()
 
 	// creates a background on screen based upon whatever is in ram
 	NF_CreateTiledBg(1, 2, "bottom_screen");  // screen 1, layer 2, name (was set when loading into memory)
-	NF_CreateTiledBg(0, 2, "top_screen");
+	NF_CreateTiledBg(0, bg_layer, "top_screen");
+
+	// initialize text for the top screen
+	NF_InitTextSys(0);
+	NF_LoadTextFont("fnt/default", "wang", 256, 256, 0);
+	NF_CreateTextLayer(0, text_layer, 0, "wang");
+	NF_DefineTextColor(0, text_layer, 2, 0, 0, 0);	// what
+	NF_SetTextColor(0, text_layer, 2);
 
 
 }
@@ -148,7 +175,7 @@ void calc_console_init()
 void set_bottom_ui(struct ui_screen* ui)
 {
 	//NF_LoadTiledBg(ui->bg_name, ui->bg_name, 256, 256);
-	NF_CreateTiledBg(1, 2, ui->bg_name);
+	NF_CreateTiledBg(1, 1, ui->bg_name);
 	NF_ShowBg(1, 2);
 
 	return;
@@ -157,7 +184,7 @@ void set_bottom_ui(struct ui_screen* ui)
 void calc_main_print(char* print_this, u8* line, char newline)
 {
     //NF_ClearTextLayer(0, 0);
-    NF_WriteText(0, 0, 2, *line, print_this);
+    NF_WriteText(0, 1, 2, *line, print_this);
 
 	if (newline == 1) 
 	{ 	
@@ -166,35 +193,33 @@ void calc_main_print(char* print_this, u8* line, char newline)
 	}
 }
 
+void plot_point(u16 x, u16 y)
+{
+
+	// assign the sprite id to the x position of the point
+	NF_Move3dSprite(x, x+10, y+10);
+	NF_Show3dSprite(x, true);
+	//NF_Create3dSprite(x, 39, 4, x+10, y+10);
+
+}
+
+
 void annoyed_print(char* str)
 {
 	u8 peen = 10;
 	calc_main_print(str, &peen, 0);
 }
 
-void nice_fraction_print(u64 whole, u64 num, u64 den, int8 sign, char* expression, char* str)
+void nice_fraction_print(u64 num, u64 den, int8 sign, int64 sci, char* expression, char* str)
 {
 	char temp[MAX_EXP_CHARS];
 	str[0] = '\0';
 
 	// original expression
-	sprintf(temp, "%s = ", expression);
-	strcat(str, temp);
+	sprintf(str, "%s = ", expression);
 
 	// sign
 	if (sign == -1) { strcat(str, "-"); }
-
-	// whole number
-	if (whole != 0) 
-	{ 
-		sprintf(temp, "%llu", whole);
-		strcat(str, temp);
-
-		// + or - the fractional part
-		if (sign == -1) { strcat(str, "-"); }
-		else { strcat(str, "+"); }
-
-	}
 
 	// numerator
 	sprintf(temp, "%llu", num);
@@ -206,6 +231,14 @@ void nice_fraction_print(u64 whole, u64 num, u64 den, int8 sign, char* expressio
 		sprintf(temp, "/%llu", den);
 		strcat(str, temp);
 	}
+
+	// scientific notation
+	if (sci != 0)
+	{
+		sprintf(temp, "*10^(%lld)", sci);
+		strcat(str, temp);
+	}
+	
 
 	return;
 

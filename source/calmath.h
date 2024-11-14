@@ -38,7 +38,6 @@ enum operators
 struct fraction
 {
     // pretty straightforward
-    u64 whole;
     u64 numerator;
     u64 denominator;
     int8 sign;
@@ -46,11 +45,12 @@ struct fraction
 };
 
 struct fraction fraction_init(u64 num, u64 den, int8 sign);
-struct fraction fraction_init_whole(u64 whole, u64 num, u64 den, int8 sign);
+struct fraction fraction_init_int(int64 num, int64 den);
 struct fraction fraction_reciprocal(struct fraction a);
-struct fraction fraction_make_mixed(struct fraction a);
 struct fraction fraction_simplify(struct fraction a);
+struct fraction fraction_to_sci(struct fraction a, int64 places);
 bool fractions_equal(struct fraction a, struct fraction b);
+double fraction_mag(struct fraction a);
 
 struct fraction fraction_none(struct fraction a, struct fraction b);
 struct fraction fraction_add(struct fraction a, struct fraction b);
@@ -68,6 +68,8 @@ struct fraction double_to_frac(double a);
 // ==================================================================
 struct unsimple_exp unsimple_exp_init();
 struct node* unsimple_add_node(struct node n, struct unsimple_exp* tree);
+int8 unsimple_is_valid(struct unsimple_exp* tree);
+int8 merge_trees(struct node* dest_node, struct unsimple_exp* dest_tree, struct node* source_node);
 
 int8 unsimple_copy(struct unsimple_exp* source, struct unsimple_exp* dest);
 int8 construct_unsimple_from_parsedstring(char parsed[MATHSTR_LEN][MAX_NUM_LEN], struct unsimple_exp* tree);
@@ -75,7 +77,7 @@ int8 unsimple_simplify(struct unsimple_exp* tree);
 int8 unsimple_simplify_node(struct node* n);
 
 int8 unsimple_combine_scalars(struct unsimple_exp* tree);
-int8 unsimple_sub_vars(struct unsimple_exp* tree, struct unsimple_exp* values);
+int8 unsimple_sub_vars(struct unsimple_exp* tree, struct unsimple_exp* values, bool graphing);
 
 int8 unsimple_rewrite(struct node* n);
 int8 addition_rewrites(struct node* n);
@@ -115,6 +117,9 @@ u64 rowcol_to_index(u8 row, u8 col);
 // ==================================================================
 struct fraction root(struct fraction a, u64 index);
 struct fraction psqrt(struct fraction a, struct fraction b);
+struct fraction fraction_sin(struct fraction a, struct fraction b);
+struct fraction fraction_cos(struct fraction a, struct fraction b);
+struct fraction fraction_tan(struct fraction a, struct fraction b);
 
 // ==================================================================
 // basic/general stuff

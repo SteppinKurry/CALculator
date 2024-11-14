@@ -107,6 +107,10 @@ void node_set_empty(struct node* n)
     n->type = OP;
     n->op = NOOP;
     n->hash = 0;
+
+    // these are just for good measure
+    n->left = NULL;
+    n->right = NULL;
 }
 
 
@@ -166,6 +170,12 @@ int8 node_gen_hash(struct node* n)
         return 0;
     }
 
+    if (n->type == VAR || n->type == MCONS)
+    {
+        n->hash = hash_op(n->var_id + 30);
+        return 0;
+    }
+
     // the given node must be an operator if we made it here
     int8 left = node_gen_hash(n->left);
     int8 right = node_gen_hash(n->right);
@@ -193,8 +203,39 @@ int8 node_gen_hash(struct node* n)
 
 }
 
+struct node* nodes_find_anomaly(struct node* a, struct node* b)
+{
+
+    if (a == NULL && b == NULL) { return NULL; }
+
+    if ( (a == NULL) ^ (b == NULL) ) { return a; }
+
+    struct node* left = nodes_find_anomaly(a->left, b->left);
+    struct node* right = nodes_find_anomaly(a->right, b->right);
+
+    // if either left or right had a mismatch, return it
+    if (left != NULL) { return left; }
+    if (right != NULL) { return right; }
+
+    // if  the current nodes have a mismatch, return
+    if (a->hash != b->hash) { return a; }
+
+    // everything matches, return null
+    return NULL; 
+}
+
+
 bool subtrees_equal(struct node* a, struct node* b)
 {
+    struct node* wat = nodes_find_anomaly(a, b);
+    char ween[90];
+
+    if (wat != NULL)
+    {
+        sprintf(ween, "%llu|%llu", a->hash, b->hash);
+        annoyed_print(ween);
+    }
+
     return a->hash == b->hash;
 }
 
@@ -209,6 +250,46 @@ int8 node_recursive_delete(struct node* n)
     node_set_empty(n);
 
     return 0;
+
+}
+
+struct node* node_find_parent(struct node* target, struct node* tree_root)
+{
+
+    if (target == NULL) { return NULL; }
+
+    if (tree_root == NULL) { return NULL; }
+    if (tree_root == target) { return NULL; }
+
+    // if either of the next two things are the correct node, 
+    // return this node
+    if (tree_root->left == target || tree_root->right == target) { return tree_root; }
+
+    // continue down the left and right subtrees
+    struct node* left = node_find_parent(target, tree_root->left);
+    if (left != NULL)   // we found it
+    {
+        return left;
+    }
+
+    // if we're here, it's either on the right or not there at all
+    return node_find_parent(target, tree_root->right);
+
+
+}
+
+u64 node_count(struct node* n)
+{
+
+    // exit if null
+    if (n == NULL) { return 0; }
+
+    // count the nodes on the left and right
+    u64 left = node_count(n->left);
+    u64 right = node_count(n->right);
+
+    // add one to account for the current node
+    return left + right + 1;
 
 }
 
